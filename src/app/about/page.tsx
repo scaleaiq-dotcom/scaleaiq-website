@@ -14,13 +14,6 @@ const VALUES = [
   { icon: Zap,           title: "Instant Access", desc: "Learn anytime, anywhere — access everything the moment you join." },
 ];
 
-const STATS = [
-  { value: "10,000+", label: "Products" },
-  { value: "50,000+", label: "Learners" },
-  { value: "₹49",     label: "Starting price" },
-  { value: "100%",    label: "Instant access" },
-];
-
 export default function AboutPage() {
   return (
     <main className="min-h-screen">
@@ -45,20 +38,6 @@ export default function AboutPage() {
               className="inline-flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-bold transition-colors hover:border-primary hover:text-primary">
               Get in Touch
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="border-b">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            {STATS.map(s => (
-              <div key={s.label} className="text-center">
-                <p className="font-heading text-3xl font-extrabold text-primary sm:text-4xl">{s.value}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>

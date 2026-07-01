@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   Bot,
   Briefcase,
+  ChevronDown,
+  ChevronUp,
   Compass,
   Gift,
   GraduationCap,
@@ -75,13 +77,15 @@ function SearchBar({ className }: { className?: string }) {
 
 export function Header() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [showAllNav, setShowAllNav] = React.useState(false);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       {/* Main row */}
       <div className="container mx-auto flex h-16 items-center gap-3 px-4">
         {/* Mobile menu */}
-        <Sheet>
+        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger
             render={
               <Button
@@ -94,19 +98,24 @@ export function Header() {
           >
             <Menu className="size-5" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0">
-            <SheetHeader className="border-b">
+          <SheetContent side="left" className="flex w-72 flex-col p-0">
+            <SheetHeader className="border-b px-4 py-4">
               <SheetTitle className="text-left">
                 <Logo />
               </SheetTitle>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Your marketplace for AI tools, courses, templates &amp; prompts — learn faster, build smarter.
+              </p>
             </SheetHeader>
-            <nav className="flex flex-col gap-1 p-4">
-              {siteConfig.mobileNav.map((item) => {
+
+            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
+              {(showAllNav ? siteConfig.mobileNav : siteConfig.mobileNav.slice(0, 6)).map((item) => {
                 const Icon = navIcons[item.icon] ?? Compass;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => setMenuOpen(false)}
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
                       pathname === item.href && "bg-accent text-accent-foreground"
@@ -119,7 +128,34 @@ export function Header() {
                   </Link>
                 );
               })}
+
+              {siteConfig.mobileNav.length > 6 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllNav((v) => !v)}
+                  className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-accent"
+                >
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    {showAllNav ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                  </span>
+                  {showAllNav ? "Show less" : "More categories"}
+                </button>
+              )}
             </nav>
+
+            {/* Footer blurb + CTA */}
+            <div className="border-t p-4">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                New AI tools, templates &amp; courses added every week.
+              </p>
+              <Link
+                href="/explore"
+                onClick={() => setMenuOpen(false)}
+                className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                Explore Marketplace
+              </Link>
+            </div>
           </SheetContent>
         </Sheet>
 
