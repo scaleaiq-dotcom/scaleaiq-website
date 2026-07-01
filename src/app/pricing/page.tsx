@@ -3,7 +3,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { Check, Star, Zap } from "lucide-react";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600; // pricing rarely changes
 
 export const metadata: Metadata = {
   title: "Pricing — ScaleAIQ",

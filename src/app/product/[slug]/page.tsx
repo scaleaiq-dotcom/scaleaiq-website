@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getProductBySlug, getProductsByCategory } from "@/lib/firebase/products";
 import { ProductDetail } from "@/components/product/product-detail";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 type Props = { params: Promise<{ slug: string }> };
 

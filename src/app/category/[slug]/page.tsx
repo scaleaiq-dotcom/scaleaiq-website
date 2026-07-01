@@ -7,7 +7,7 @@ import { SectionHeader } from "@/components/home/section-header";
 import { NotifyMeForm } from "@/components/home/notify-me-form";
 import { getCategories, getProductsByCategory } from "@/lib/firebase/products";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 const iconMap: Record<string, LucideIcon> = {
   Bot, GraduationCap, LayoutTemplate, MessageSquareText,

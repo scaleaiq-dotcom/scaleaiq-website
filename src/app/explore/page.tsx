@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ExploreClient } from "@/components/explore/explore-client";
 import { getCategories } from "@/lib/firebase/products";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // categories rarely change; products load client-side
 
 export const metadata: Metadata = {
   title: "Explore Products — ScaleAIQ",

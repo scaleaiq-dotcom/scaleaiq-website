@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { adminDb } from "@/lib/firebase/admin";
 import { FAQClient } from "@/components/faq/faq-client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600; // FAQs rarely change
 
 export const metadata: Metadata = {
   title: "FAQ — ScaleAIQ",

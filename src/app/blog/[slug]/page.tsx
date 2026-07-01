@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { adminDb } from "@/lib/firebase/admin";
 import { Calendar, Clock, ArrowLeft, BookOpen } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 type Props = { params: Promise<{ slug: string }> };
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { adminDb } from "@/lib/firebase/admin";
 import { Calendar, Clock, Users, Video, ArrowRight } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Workshops — ScaleAIQ",
