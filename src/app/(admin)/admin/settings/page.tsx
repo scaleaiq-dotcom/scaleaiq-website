@@ -62,7 +62,7 @@ function useSave(section: string, getData: () => object) {
 function GeneralTab() {
   const [form, setForm] = React.useState({
     storeName: "ScaleAIQ", tagline: "India's AI & Digital Marketplace",
-    email: "support@scaleaiq.in", phone: "", website: "https://www.scaleaiq.in",
+    email: "scaleaiq@gmail.com", phone: "", website: "https://www.scaleaiq.in",
     address: "", currency: "INR", timezone: "Asia/Kolkata",
   });
   const u = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));

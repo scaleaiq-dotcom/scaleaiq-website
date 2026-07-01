@@ -126,7 +126,7 @@ export default function SettingsPage() {
                     className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:border-foreground">
                     Cancel
                   </button>
-                  <a href="mailto:support@scaleaiq.in?subject=Account Deletion Request"
+                  <a href="mailto:scaleaiq@gmail.com?subject=Account Deletion Request"
                     className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-medium text-white">
                     Email Support to Delete
                   </a>

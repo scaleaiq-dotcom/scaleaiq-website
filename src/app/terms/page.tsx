@@ -43,7 +43,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="10. Contact">
-        For questions about these Terms, contact us at <a href="mailto:legal@scaleaiq.in" className="text-primary hover:underline">legal@scaleaiq.in</a>.
+        For questions about these Terms, contact us at <a href="mailto:scaleaiq@gmail.com" className="text-primary hover:underline">scaleaiq@gmail.com</a>.
       </Section>
     </LegalLayout>
   );

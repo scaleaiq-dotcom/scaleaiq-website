@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   Download, Star, ShoppingCart, Heart, Share2, Clock,
   CheckCircle2, User, Tag, Layers, FileText,
-  MessageSquare, Copy, Check, Bell, Package,
+  MessageSquare, Copy, Check, Bell, Package, ExternalLink,
 } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatPrice } from "@/lib/format";
@@ -214,6 +214,9 @@ function PurchaseCard({ product, isFree, isComingSoon, onAddToCart, onGetFree, o
   product: Product; isFree: boolean; isComingSoon: boolean;
   onAddToCart: () => void; onGetFree: () => void; onBuyNow: () => void; onWishlist: () => void;
 }) {
+  const isExternal =
+    !!product.externalUrl &&
+    (product.deliveryType === "external" || product.launchType === "External URL");
   return (
     <div className="rounded-2xl border bg-card p-6 shadow-sm">
       {/* Category */}
@@ -258,6 +261,16 @@ function PurchaseCard({ product, isFree, isComingSoon, onAddToCart, onGetFree, o
             <Button size="lg" className="w-full gap-2 font-semibold">
               <Bell className="size-4" /> Notify Me
             </Button>
+          ) : isExternal ? (
+            <a
+              href={product.externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-3 font-heading font-bold text-white transition-opacity hover:opacity-90"
+            >
+              <ExternalLink className="size-4" />
+              {isFree ? "Open App" : `Open App — ${formatPrice(product.price)}`}
+            </a>
           ) : isFree ? (
             <button
               onClick={onGetFree}

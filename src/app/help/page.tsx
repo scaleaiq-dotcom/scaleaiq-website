@@ -64,7 +64,7 @@ const TOPICS = [
     desc: "Can't find an answer? Our team is ready to help.",
     links: [
       { label: "Contact support", href: "/contact" },
-      { label: "Email: support@scaleaiq.in", href: "mailto:support@scaleaiq.in" },
+      { label: "Email: scaleaiq@gmail.com", href: "mailto:scaleaiq@gmail.com" },
       { label: "Browse all FAQs", href: "/faq" },
     ],
   },

@@ -5,25 +5,51 @@ const PRODUCTS_COL = "products";
 const CATEGORIES_COL = "categories";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function prettify(slug: string): string {
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function docToProduct(id: string, data: Record<string, any>): Product {
+  // The admin editor saves `price`/`salePrice` as strings; the public side uses
+  // `price` (selling price) + `originalPrice` (struck-through).
+  const regular = Number(data.price) || 0;
+  const sale = Number(data.salePrice) || 0;
+  const hasSale = sale > 0 && sale < regular;
+  const isFree = (data.pricingType ?? "") === "free";
+  const sellPrice = isFree ? 0 : hasSale ? sale : regular;
+  const strikePrice = hasSale
+    ? regular
+    : data.originalPrice != null
+      ? Number(data.originalPrice)
+      : undefined;
+
+  // External-app / external-URL products: editor stores the link as `launchUrl`.
+  const externalUrl =
+    data.launchUrl ?? data.externalUrl ?? data.delivery?.externalUrl ?? "";
+  const isExternal =
+    data.launchType === "External URL" ||
+    data.productType === "External App" ||
+    data.pricingType === "external";
+
   return {
     id,
     slug: data.slug ?? id,
     title: data.title ?? "",
-    description: data.description ?? "",
-    shortDescription: data.shortDescription ?? "",
-    thumbnailUrl: data.thumbnailUrl ?? "",
-    images: data.images ?? [],
-    videoUrl: data.videoUrl,
+    // Editor field names (fullDesc/shortDesc/thumbnail) fall back to public names.
+    description: data.description ?? data.fullDesc ?? "",
+    shortDescription: data.shortDescription ?? data.shortDesc ?? "",
+    thumbnailUrl: data.thumbnailUrl ?? data.thumbnail ?? "",
+    images: data.images ?? [data.heroBanner, data.thumbnail].filter(Boolean),
+    videoUrl: data.videoUrl ?? data.pvUrl,
     category: data.category ?? "",
-    categoryLabel: data.categoryLabel ?? "",
+    categoryLabel: data.categoryLabel ?? prettify(data.category ?? ""),
     subcategory: data.subcategory,
     tags: data.tags ?? [],
-    price: data.price ?? 0,
-    originalPrice: data.originalPrice,
+    price: sellPrice,
+    originalPrice: strikePrice,
     pricingType: data.pricingType ?? "free",
-    deliveryType: data.deliveryType ?? "download",
-    delivery: data.delivery ?? {},
+    deliveryType: data.deliveryType ?? (isExternal ? "external" : "download"),
+    delivery: data.delivery ?? (externalUrl ? { externalUrl } : {}),
     creatorName: data.creatorName ?? "ScaleAIQ",
     creatorAvatar: data.creatorAvatar,
     rating: data.rating ?? 0,
@@ -36,6 +62,8 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     freeThisWeek: data.freeThisWeek ?? false,
     version: data.version,
     status: data.status ?? "published",
+    launchType: data.launchType,
+    externalUrl,
     gradient: data.gradient,
     createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,

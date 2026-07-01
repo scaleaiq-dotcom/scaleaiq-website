@@ -6,8 +6,10 @@ import {
   Save, Eye, Loader2, Plus, Trash2, GripVertical, Upload,
   ChevronRight, Globe, BookOpen, MessageCircle, Mail,
   Video, FileText, Download, Play, ArrowLeftRight, ExternalLink,
-  BarChart3, TrendingUp, Users, Star,
+  BarChart3, TrendingUp, Users, Star, CheckCircle2, X,
 } from "lucide-react";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -132,6 +134,9 @@ export function ProductEditor({ productId }: { productId?: string }) {
   const [saved, setSaved] = React.useState(false);
   const [loading, setLoading] = React.useState(!!productId);
   const [categories, setCategories] = React.useState<{ id: string; name: string; slug: string }[]>([]);
+  const [successMsg, setSuccessMsg] = React.useState("");
+  const [uploading, setUploading] = React.useState<keyof FS | null>(null);
+  const [uploadError, setUploadError] = React.useState("");
 
   React.useEffect(() => {
     fetch("/api/admin/categories")
@@ -221,6 +226,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
   async function save(status?: string) {
     setSaving(true);
+    setSuccessMsg("");
     try {
       const payload = status ? { ...form, status } : form;
       const url = productId ? `/api/admin/products/${productId}` : "/api/admin/products";
@@ -232,12 +238,48 @@ export function ProductEditor({ productId }: { productId?: string }) {
       if (res.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
+        const published = (status ?? form.status) === "published";
         if (!productId) {
-          const d = await res.json();
-          router.push(`/admin/products/${d.id}`);
+          if (published) {
+            // Publish success on a new product: clear the form so the next one can be added right away
+            setForm(DEF);
+            setTab("overview");
+            setSuccessMsg("🎉 Product published! The form has been cleared — add your next product.");
+          } else {
+            // Draft: keep editing the same product
+            const d = await res.json();
+            router.push(`/admin/products/${d.id}`);
+            return;
+          }
+        } else {
+          setSuccessMsg(published ? "✅ Product published successfully." : "✅ Changes saved.");
         }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        setSuccessMsg("⚠️ Failed to save. Please try again.");
       }
     } finally { setSaving(false); }
+  }
+
+  async function uploadImage(file: File, field: keyof FS) {
+    setUploadError("");
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image is larger than 5MB. Choose a smaller file or paste a URL.");
+      return;
+    }
+    setUploading(field);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `products/${productId ?? "new"}/${Date.now()}-${safeName}`;
+      const r = storageRef(storage, path);
+      await uploadBytes(r, file);
+      const dlUrl = await getDownloadURL(r);
+      upd(field, dlUrl as never);
+    } catch {
+      setUploadError("Upload failed. Ensure Firebase Storage is enabled, or paste an image URL instead.");
+    } finally {
+      setUploading(null);
+    }
   }
 
   const addT = () => upd("tutorials", [...form.tutorials, { id: crypto.randomUUID(), title: "", videoUrl: "", duration: "", description: "", order: form.tutorials.length + 1, free: true }]);
@@ -262,6 +304,16 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
   return (
     <div className="flex h-full flex-col">
+      {/* Success banner */}
+      {successMsg && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+          <span className="flex items-center gap-2"><CheckCircle2 className="size-4 shrink-0" />{successMsg}</span>
+          <button onClick={() => setSuccessMsg("")} aria-label="Dismiss" className="opacity-70 hover:opacity-100">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3">
         <div>
@@ -411,6 +463,11 @@ export function ProductEditor({ productId }: { productId?: string }) {
         {/* ── MEDIA ── */}
         {tab === "media" && (
           <div className="grid gap-6 max-w-2xl">
+            {uploadError && (
+              <p className="rounded-lg border border-rose-500/30 bg-rose-50 px-3 py-2 text-xs text-rose-600 dark:bg-rose-900/20">
+                {uploadError}
+              </p>
+            )}
             {[
               { k: "thumbnail" as keyof FS, l: "Thumbnail", h: "16:9, 800x450px recommended" },
               { k: "heroBanner" as keyof FS, l: "Hero Banner", h: "1200x400px recommended" },
@@ -428,11 +485,33 @@ export function ProductEditor({ productId }: { productId?: string }) {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed p-8 transition-colors hover:border-primary/50 hover:bg-primary/5">
-                    <Upload className="size-8 text-muted-foreground" />
-                    <p className="text-sm font-medium">Drop image or click to upload</p>
-                    <p className="text-xs text-muted-foreground">PNG, JPG, WebP up to 5MB</p>
-                    <Input type="url" placeholder="Or paste image URL" className="mt-2 max-w-xs"
+                  <div className="space-y-2">
+                    <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed p-8 transition-colors hover:border-primary/50 hover:bg-primary/5">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploading === f.k}
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadImage(file, f.k);
+                          e.target.value = "";
+                        }}
+                      />
+                      {uploading === f.k ? (
+                        <>
+                          <Loader2 className="size-8 animate-spin text-primary" />
+                          <p className="text-sm font-medium">Uploading…</p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="size-8 text-muted-foreground" />
+                          <p className="text-sm font-medium">Click to upload image</p>
+                          <p className="text-xs text-muted-foreground">PNG, JPG, WebP up to 5MB</p>
+                        </>
+                      )}
+                    </label>
+                    <Input type="url" placeholder="Or paste image URL" className="max-w-xs"
                       onBlur={e => { if (e.target.value) upd(f.k, e.target.value as never); }} />
                   </div>
                 )}

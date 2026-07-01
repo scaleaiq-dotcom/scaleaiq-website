@@ -37,15 +37,15 @@ export default function ContactPage() {
                 icon: Mail,
                 title: "Email Us",
                 desc: "For general enquiries and partnerships",
-                value: "hello@scaleaiq.in",
-                href: "mailto:hello@scaleaiq.in",
+                value: "scaleaiq@gmail.com",
+                href: "mailto:scaleaiq@gmail.com",
               },
               {
                 icon: MessageSquare,
                 title: "Support",
                 desc: "For product or account issues",
-                value: "support@scaleaiq.in",
-                href: "mailto:support@scaleaiq.in",
+                value: "scaleaiq@gmail.com",
+                href: "mailto:scaleaiq@gmail.com",
               },
               {
                 icon: Clock,
@@ -76,10 +76,8 @@ export default function ContactPage() {
               <p className="mt-1 text-sm text-muted-foreground">Stay updated on new products and launches</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {[
-                  { label: "Instagram", href: "https://instagram.com" },
-                  { label: "WhatsApp", href: "https://whatsapp.com" },
-                  { label: "YouTube", href: "https://youtube.com" },
-                  { label: "LinkedIn", href: "https://linkedin.com" },
+                  { label: "Instagram", href: "https://www.instagram.com/aishiksha01/" },
+                  { label: "WhatsApp", href: "https://chat.whatsapp.com/BcQlNPZ5Wkg0FyO5fLcQxH" },
                 ].map(s => (
                   <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
                     className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">

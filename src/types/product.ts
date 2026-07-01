@@ -79,6 +79,10 @@ export interface Product {
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
 
+  // External launch (for "External App" / "External URL" products)
+  launchType?: string;
+  externalUrl?: string;
+
   // Legacy gradient (used as fallback when no thumbnailUrl)
   gradient?: string;
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Zap, Users, ShieldCheck, TrendingUp, ArrowRight } from "lucide-react";
+import { Zap, GraduationCap, Sparkles, BookOpen, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "About Us — ScaleAIQ",
@@ -8,10 +8,10 @@ export const metadata: Metadata = {
 };
 
 const VALUES = [
-  { icon: Zap,         title: "Built for Speed",   desc: "Instant access to every product the moment you purchase. No waiting, no friction." },
-  { icon: ShieldCheck, title: "Trusted Quality",   desc: "Every product is reviewed before listing. We stand behind what we sell." },
-  { icon: Users,       title: "Community First",   desc: "Thousands of students, creators, and entrepreneurs learning together." },
-  { icon: TrendingUp,  title: "Always Growing",    desc: "New tools, templates, and courses added weekly. Stay ahead of the curve." },
+  { icon: GraduationCap, title: "Expert-Curated", desc: "High-quality learning, curated by people who know the field." },
+  { icon: Sparkles,      title: "AI Powered",     desc: "A smarter learning experience built around modern AI tools." },
+  { icon: BookOpen,      title: "New Content",    desc: "Fresh tools, templates, and courses added regularly." },
+  { icon: Zap,           title: "Instant Access", desc: "Learn anytime, anywhere — access everything the moment you join." },
 ];
 
 const STATS = [
@@ -79,7 +79,7 @@ export default function AboutPage() {
       {/* Values */}
       <section className="border-t bg-muted/30">
         <div className="container mx-auto px-4 py-16">
-          <h2 className="mb-10 text-center font-heading text-3xl font-extrabold tracking-tight">What We Stand For</h2>
+          <h2 className="mb-10 text-center font-heading text-3xl font-extrabold tracking-tight">Why Learn With Us</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {VALUES.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-2xl border bg-card p-6 text-center">

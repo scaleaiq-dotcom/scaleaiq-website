@@ -1,4 +1,5 @@
 import { Hero } from "@/components/home/hero";
+import { TrustStrip } from "@/components/home/trust-strip";
 import { ProductGrid } from "@/components/home/product-grid";
 import { CategorySection } from "@/components/home/category-section";
 import { WhyScaleAIQ } from "@/components/home/why-scaleaiq";
@@ -41,6 +42,8 @@ export default async function Home() {
   return (
     <>
       <Hero />
+
+      <TrustStrip />
 
       <ProductGrid title="Featured Products" products={featured} viewAllHref="/explore" />
 

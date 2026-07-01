@@ -43,7 +43,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="10. Contact">
-        For privacy-related questions or data requests, contact us at <a href="mailto:privacy@scaleaiq.in" className="text-primary hover:underline">privacy@scaleaiq.in</a>.
+        For privacy-related questions or data requests, contact us at <a href="mailto:scaleaiq@gmail.com" className="text-primary hover:underline">scaleaiq@gmail.com</a>.
       </Section>
     </LegalLayout>
   );

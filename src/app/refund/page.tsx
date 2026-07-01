@@ -47,11 +47,11 @@ export default function RefundPage() {
       </Section>
 
       <Section title="How to Request a Refund">
-        Email us at <a href="mailto:support@scaleaiq.in" className="text-primary hover:underline">support@scaleaiq.in</a> with your order ID and a description of the issue. We will respond within 48 hours. If approved, refunds are processed to your original payment method within 5–7 business days.
+        Email us at <a href="mailto:scaleaiq@gmail.com" className="text-primary hover:underline">scaleaiq@gmail.com</a> with your order ID and a description of the issue. We will respond within 48 hours. If approved, refunds are processed to your original payment method within 5–7 business days.
       </Section>
 
       <Section title="Contact">
-        Questions about refunds? <Link href="/contact" className="text-primary hover:underline">Contact our support team</Link> or email <a href="mailto:support@scaleaiq.in" className="text-primary hover:underline">support@scaleaiq.in</a>.
+        Questions about refunds? <Link href="/contact" className="text-primary hover:underline">Contact our support team</Link> or email <a href="mailto:scaleaiq@gmail.com" className="text-primary hover:underline">scaleaiq@gmail.com</a>.
       </Section>
     </LegalLayout>
   );

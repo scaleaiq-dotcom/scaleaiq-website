@@ -64,7 +64,7 @@ export function Hero() {
     <section className="container mx-auto px-4 pt-5">
       {/* ── MOBILE ── stacked: image on top, copy below */}
       <div className="overflow-hidden rounded-2xl border lg:hidden">
-        <div className="relative h-48 w-full overflow-hidden sm:h-56">
+        <div className="relative h-36 w-full overflow-hidden sm:h-44">
           {slides.map((s, i) => (
             <div
               key={s.image}
@@ -129,17 +129,17 @@ export function Hero() {
       </div>
 
       {/* ── DESKTOP ── side by side */}
-      <div className="hidden overflow-hidden rounded-2xl border lg:grid lg:min-h-[340px] lg:grid-cols-2">
-        <div className="relative flex flex-col justify-center bg-[linear-gradient(160deg,#0a0f1f_0%,#1e1060_60%,#7b3dff_100%)] px-10 py-10 text-white">
+      <div className="hidden overflow-hidden rounded-2xl border lg:grid lg:min-h-[260px] lg:grid-cols-2">
+        <div className="relative flex flex-col justify-center bg-[linear-gradient(160deg,#0a0f1f_0%,#1e1060_60%,#7b3dff_100%)] px-8 py-8 text-white">
           <div
             className="transition-opacity duration-300"
             style={{ opacity: fade ? 1 : 0 }}
           >
-            <h1 className="font-heading text-3xl font-extrabold leading-tight tracking-tight lg:text-[2.5rem]">
+            <h1 className="font-heading text-2xl font-extrabold leading-tight tracking-tight lg:text-[2rem]">
               {slide.headline}
             </h1>
-            <p className="mt-3 max-w-md text-base text-white/80">{slide.subtitle}</p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <p className="mt-2.5 max-w-md text-sm text-white/80">{slide.subtitle}</p>
+            <div className="mt-5 flex flex-wrap gap-3">
               <Button
                 size="lg"
                 variant="secondary"
@@ -161,7 +161,7 @@ export function Hero() {
             </div>
           </div>
 
-          <div className="mt-7 flex gap-2">
+          <div className="mt-5 flex gap-2">
             {slides.map((_, i) => (
               <button
                 key={i}
@@ -173,7 +173,7 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative min-h-[280px] overflow-hidden">
+        <div className="relative min-h-[240px] overflow-hidden">
           {slides.map((s, i) => (
             <div
               key={s.image}

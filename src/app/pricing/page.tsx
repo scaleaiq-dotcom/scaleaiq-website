@@ -93,7 +93,7 @@ export default async function PricingPage() {
               className="rounded-xl border px-5 py-2.5 text-sm font-semibold transition-colors hover:border-primary hover:text-primary">
               View FAQ
             </Link>
-            <a href="mailto:support@scaleaiq.in"
+            <a href="mailto:scaleaiq@gmail.com"
               className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
               Contact Us
             </a>
