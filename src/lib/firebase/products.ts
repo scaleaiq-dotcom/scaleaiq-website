@@ -44,7 +44,7 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     category: data.category ?? "",
     categoryLabel: data.categoryLabel ?? prettify(data.category ?? ""),
     subcategory: data.subcategory,
-    tags: data.tags ?? [],
+    tags: Array.isArray(data.tags) ? data.tags : typeof data.tags === "string" ? data.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
     price: sellPrice,
     originalPrice: strikePrice,
     pricingType: data.pricingType ?? "free",
