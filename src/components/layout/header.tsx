@@ -78,13 +78,6 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      {/* Promo bar */}
-      <div className="bg-brand-gradient text-white">
-        <div className="container mx-auto flex items-center justify-center gap-2 px-4 py-2 text-center text-xs font-medium sm:text-sm">
-          <span>🎉 Special Offer! Get 30% OFF on all Pro Plans. Limited Time Only!</span>
-        </div>
-      </div>
-
       {/* Main row */}
       <div className="container mx-auto flex h-16 items-center gap-3 px-4">
         {/* Mobile menu */}

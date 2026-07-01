@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 
 // Body font
 const fontSans = Inter({
@@ -75,6 +76,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
             <CartDrawer />
+            <WhatsAppButton />
           </div>
         </ThemeProvider>
       </body>

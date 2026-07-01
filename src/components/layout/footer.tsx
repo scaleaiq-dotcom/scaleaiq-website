@@ -2,22 +2,14 @@ import Link from "next/link";
 
 import { siteConfig } from "@/config/site";
 import { Logo } from "@/components/layout/logo";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  FacebookIcon,
-  InstagramIcon,
-  LinkedinIcon,
-  XIcon,
-  YoutubeIcon,
-} from "@/components/icons/social";
+import { InstagramIcon, WhatsAppIcon } from "@/components/icons/social";
 
-const socialIcons = [
-  { icon: FacebookIcon, href: siteConfig.social.facebook, label: "Facebook" },
-  { icon: XIcon, href: siteConfig.social.twitter, label: "X" },
-  { icon: InstagramIcon, href: siteConfig.social.instagram, label: "Instagram" },
-  { icon: YoutubeIcon, href: siteConfig.social.youtube, label: "YouTube" },
-  { icon: LinkedinIcon, href: siteConfig.social.linkedin, label: "LinkedIn" },
+const WHATSAPP_GROUP = "https://chat.whatsapp.com/BcQlNPZ5Wkg0FyO5fLcQxH";
+
+const socialLinks = [
+  { icon: InstagramIcon, href: "https://www.instagram.com/aishiksha01/", label: "Instagram", color: "hover:text-pink-500" },
+  { icon: WhatsAppIcon, href: WHATSAPP_GROUP, label: "WhatsApp Community", color: "hover:text-green-500" },
 ];
 
 function FooterColumn({
@@ -48,7 +40,7 @@ function FooterColumn({
 
 export function Footer() {
   return (
-    <footer className="border-t bg-muted/30">
+    <footer className="border-t bg-card">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-5">
           {/* Brand */}
@@ -57,45 +49,64 @@ export function Footer() {
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               {siteConfig.description}
             </p>
-            <div className="mt-4 flex gap-2">
-              {socialIcons.map(({ icon: Icon, href, label }) => (
-                <Button
+
+            {/* Social icons */}
+            <div className="mt-4 flex gap-3">
+              {socialLinks.map(({ icon: Icon, href, label, color }) => (
+                <Link
                   key={label}
-                  variant="outline"
-                  size="icon-sm"
-                  className="rounded-full"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
-                  nativeButton={false}
-                  render={<Link href={href} />}
+                  className={`flex size-9 items-center justify-center rounded-full border bg-background text-muted-foreground transition-colors ${color}`}
                 >
                   <Icon className="size-4" />
-                </Button>
+                </Link>
               ))}
             </div>
+
+            {/* Join community */}
+            <Button
+              className="mt-4 gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600"
+              size="sm"
+              nativeButton={false}
+              render={
+                <Link href={WHATSAPP_GROUP} target="_blank" rel="noopener noreferrer" />
+              }
+            >
+              <WhatsAppIcon className="size-4" />
+              Join Our Community
+            </Button>
           </div>
 
           <FooterColumn title="Quick Links" links={siteConfig.footerNav.quickLinks} />
           <FooterColumn title="Categories" links={siteConfig.footerNav.categories} />
           <FooterColumn title="Support" links={siteConfig.footerNav.support} />
 
-          {/* Newsletter */}
+          {/* Contact */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            <h3 className="mb-3 text-sm font-semibold">Get Free AI Resources</h3>
+            <h3 className="mb-3 text-sm font-semibold">Get in Touch</h3>
             <p className="mb-3 text-sm text-muted-foreground">
-              Join thousands of learners and receive new AI tools, templates and
-              free downloads.
+              Questions? Chat with us on WhatsApp or email us directly.
             </p>
-            <form className="flex gap-2" action="#">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                aria-label="Email address"
-                className="h-9"
-              />
-              <Button type="submit" size="default">
-                Join Free
-              </Button>
-            </form>
+            <div className="flex flex-col gap-2">
+              <Link
+                href={WHATSAPP_GROUP}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:border-green-400 hover:text-green-600"
+              >
+                <WhatsAppIcon className="size-4 text-green-500" />
+                WhatsApp Community
+              </Link>
+              <Link
+                href="mailto:scaleaiq@gmail.com"
+                className="inline-flex items-center gap-2 rounded-xl border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary"
+              >
+                ✉️ scaleaiq@gmail.com
+              </Link>
+            </div>
           </div>
         </div>
       </div>

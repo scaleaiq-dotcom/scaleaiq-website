@@ -3,7 +3,9 @@ import { ProductGrid } from "@/components/home/product-grid";
 import { CategorySection } from "@/components/home/category-section";
 import { WhyScaleAIQ } from "@/components/home/why-scaleaiq";
 import { Testimonials } from "@/components/home/testimonials";
+import { ReviewForm } from "@/components/home/review-form";
 import { Newsletter } from "@/components/home/newsletter";
+import { adminDb } from "@/lib/firebase/admin";
 import {
   getFeaturedProducts,
   getTrendingProducts,
@@ -16,15 +18,16 @@ import {
 export const dynamic = "force-dynamic"; // never cache — admin changes reflect instantly
 
 export default async function Home() {
-  // All data from Firestore — no mock fallback. Empty = nothing shown.
-  const [featured, trending, freeThisWeek, topSellers, recent, prompts] = await Promise.all([
+  const [featured, trending, freeThisWeek, topSellers, recent, prompts, reviewsSnap] = await Promise.all([
     getFeaturedProducts(8).catch(() => []),
     getTrendingProducts(8).catch(() => []),
     getFreeThisWeekProducts(8).catch(() => []),
     getBestSellerProducts(8).catch(() => []),
     getRecentProducts(8).catch(() => []),
     getProductsByCategory("prompts", 8).catch(() => []),
+    adminDb.collection("siteReviews").where("approved", "==", true).orderBy("createdAt", "desc").limit(6).get().catch(() => null),
   ]);
+  const reviews = reviewsSnap?.docs.map(d => ({ id: d.id, name: d.data().name as string, rating: d.data().rating as number, comment: d.data().comment as string })) ?? [];
 
   return (
     <>
@@ -71,7 +74,14 @@ export default async function Home() {
 
       <WhyScaleAIQ />
 
-      <Testimonials />
+      <Testimonials reviews={reviews} />
+
+      {/* Review submission */}
+      <section className="container mx-auto px-4 pb-10">
+        <div className="mx-auto max-w-lg">
+          <ReviewForm />
+        </div>
+      </section>
 
       <Newsletter />
     </>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 const SUBJECTS = [
   "General Enquiry",
@@ -14,28 +14,15 @@ const SUBJECTS = [
 
 export function ContactClient() {
   const [form, setForm] = React.useState({ name: "", email: "", subject: SUBJECTS[0], message: "" });
-  const [sending, setSending] = React.useState(false);
-  const [sent,    setSent]    = React.useState(false);
-  const [error,   setError]   = React.useState("");
+  const [sent, setSent] = React.useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name || !form.email || !form.message) return;
-    setSending(true);
-    setError("");
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error("Failed");
-      setSent(true);
-      setForm({ name: "", email: "", subject: SUBJECTS[0], message: "" });
-    } catch {
-      setError("Something went wrong. Please email us directly at hello@scaleaiq.in");
-    }
-    setSending(false);
+    if (!form.name || !form.message) return;
+    const text = `Hi ScaleAIQ Team! 👋\n\nName: ${form.name}\nEmail: ${form.email || "Not provided"}\nSubject: ${form.subject}\n\n${form.message}`;
+    window.open(`https://wa.me/917990368493?text=${encodeURIComponent(text)}`, "_blank");
+    setSent(true);
+    setForm({ name: "", email: "", subject: SUBJECTS[0], message: "" });
   }
 
   if (sent) {
@@ -43,8 +30,8 @@ export function ContactClient() {
       <div className="flex flex-col items-center gap-4 rounded-2xl border bg-card py-16 text-center">
         <CheckCircle2 className="size-14 text-emerald-500" />
         <div>
-          <p className="font-heading text-xl font-bold">Message Sent!</p>
-          <p className="mt-2 text-sm text-muted-foreground">Thanks for reaching out. We'll get back to you within 24 hours.</p>
+          <p className="font-heading text-xl font-bold">Opening WhatsApp...</p>
+          <p className="mt-2 text-sm text-muted-foreground">Your message is ready. Complete sending it on WhatsApp to connect with us.</p>
         </div>
         <button onClick={() => setSent(false)}
           className="cursor-pointer rounded-xl border px-5 py-2 text-sm font-medium transition-colors hover:border-primary hover:text-primary">
@@ -88,12 +75,9 @@ export function ContactClient() {
           className="w-full resize-none rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
       </div>
 
-      {error && <p className="text-sm text-rose-500">{error}</p>}
-
-      <button type="submit" disabled={sending || !form.name || !form.email || !form.message}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
-        {sending && <Loader2 className="size-4 animate-spin" />}
-        {sending ? "Sending…" : "Send Message"}
+      <button type="submit" disabled={!form.name || !form.message}
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+        {"Send via WhatsApp"}
       </button>
     </form>
   );

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { Bot, GraduationCap, LayoutTemplate, MessageSquareText, BookOpen, TrendingUp, Briefcase, Palette, Zap, Gift, type LucideIcon } from "lucide-react";
+import { Bot, GraduationCap, LayoutTemplate, MessageSquareText, BookOpen, TrendingUp, Briefcase, Palette, Zap, Gift, Bell, type LucideIcon } from "lucide-react";
 import type { Product } from "@/types/product";
 import { ProductCard } from "@/components/home/product-card";
 import { SectionHeader } from "@/components/home/section-header";
+import { NotifyMeForm } from "@/components/home/notify-me-form";
 import { getCategories, getProductsByCategory } from "@/lib/firebase/products";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,30 @@ export default async function CategoryPage({ params }: Props) {
   ]);
 
   const cat = cats.find(c => c.slug === slug);
-  if (!cat) notFound();
+
+  // Known slugs that may not exist in Firestore yet — show Coming Soon instead of 404
+  const knownSlugs = ["ai-tools", "courses", "templates", "prompts", "ebooks", "finance", "business", "automation", "design", "free"];
+  if (!cat) {
+    if (!knownSlugs.includes(slug)) {
+      const { notFound } = await import("next/navigation");
+      notFound();
+    }
+    // Show coming soon page
+    const label = slug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    return (
+      <main className="min-h-screen">
+        <div className="flex flex-col items-center justify-center gap-6 px-4 py-32 text-center">
+          <Bell className="size-16 text-primary/30" />
+          <h1 className="font-heading text-3xl font-bold">{label} — Coming Soon</h1>
+          <p className="max-w-md text-muted-foreground">We&apos;re curating the best {label.toLowerCase()} content. Be the first to know when it launches!</p>
+          <div className="w-full max-w-sm">
+            <NotifyMeForm category={slug} />
+          </div>
+          <Link href="/explore" className="text-sm font-medium text-primary hover:underline">Browse available products →</Link>
+        </div>
+      </main>
+    );
+  }
 
   const Icon = iconMap[cat.icon] ?? Bot;
   const featured = products.filter(p => p.featured || p.bestSeller);
@@ -80,10 +103,15 @@ export default async function CategoryPage({ params }: Props) {
         </div>
 
         {products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+          <div className="flex flex-col items-center justify-center gap-6 py-20 text-center">
             <Icon className="size-16 text-muted-foreground/30" />
-            <h2 className="text-xl font-semibold">No products yet</h2>
-            <p className="text-muted-foreground">We&apos;re adding {cat.name.toLowerCase()} soon. Check back later!</p>
+            <div>
+              <h2 className="text-2xl font-bold">Coming Soon!</h2>
+              <p className="mt-2 max-w-md text-muted-foreground">We&apos;re adding premium {cat.name.toLowerCase()} content. Get notified when it&apos;s ready!</p>
+            </div>
+            <div className="w-full max-w-sm">
+              <NotifyMeForm category={slug} />
+            </div>
             <Link href="/explore" className="text-sm font-medium text-primary hover:underline">Browse all products →</Link>
           </div>
         ) : (
