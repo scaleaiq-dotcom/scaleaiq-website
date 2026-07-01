@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase/admin";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { getAdminAuth } from "@/lib/firebase/admin";
 
 async function requireAdmin(req: NextRequest) {
   const session = req.cookies.get("session")?.value;
   if (!session) return null;
   try {
-    const decoded = await adminAuth.verifySessionCookie(session, true);
+    const decoded = await (await getAdminAuth()).verifySessionCookie(session, true);
     const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map(e => e.trim());
     if (!adminEmails.includes(decoded.email ?? "")) return null;
     return decoded;
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (!await requireAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const list = await adminAuth.listUsers(1000);
+    const list = await (await getAdminAuth()).listUsers(1000);
     const users = list.users.map(u => ({
       uid: u.uid,
       name: u.displayName ?? "",
@@ -33,3 +33,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Failed to list users" }, { status: 500 });
   }
 }
+

@@ -1,15 +1,12 @@
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
 import { getStorage } from "firebase-admin/storage";
 
 function getAdminApp(): App {
   if (getApps().length > 0) return getApps()[0];
 
   let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY ?? "";
-  // Strip surrounding quotes and trailing comma (from JSON service-account copy-paste)
   privateKey = privateKey.replace(/^["']/, "").replace(/["'],?\s*$/, "");
-  // Convert literal \n sequences to real newlines
   privateKey = privateKey.replace(/\\n/g, "\n");
 
   return initializeApp({
@@ -24,5 +21,11 @@ function getAdminApp(): App {
 
 export const adminApp = getAdminApp();
 export const adminDb = getFirestore(adminApp);
-export const adminAuth = getAuth(adminApp);
 export const adminStorage = getStorage(adminApp);
+
+// Lazy-load auth to avoid pulling jwks-rsa (ESM/CJS conflict with jose v6)
+// at module load time. Only loaded when a request actually needs auth.
+export async function getAdminAuth() {
+  const { getAuth } = await import("firebase-admin/auth");
+  return getAuth(adminApp);
+}

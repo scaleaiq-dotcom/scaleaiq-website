@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { getAdminAuth, adminDb } from "@/lib/firebase/admin";
 
 async function requireAdmin(req: NextRequest) {
   const session = req.cookies.get("session")?.value;
   if (!session) return null;
   try {
-    const decoded = await adminAuth.verifySessionCookie(session, true);
+    const decoded = await (await getAdminAuth()).verifySessionCookie(session, true);
     const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map(e => e.trim());
     if (!adminEmails.includes(decoded.email ?? "")) return null;
     return decoded;
@@ -62,3 +62,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Failed to load stats" }, { status: 500 });
   }
 }
+

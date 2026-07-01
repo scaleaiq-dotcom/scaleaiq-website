@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { getAdminAuth, adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const decoded = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const decoded = await (await getAdminAuth()).verifySessionCookie(sessionCookie, true);
     const uid = decoded.uid;
     const email = decoded.email ?? "";
 
@@ -88,3 +88,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+

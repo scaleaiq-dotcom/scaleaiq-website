@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase/admin";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { getAdminAuth } from "@/lib/firebase/admin";
 import Razorpay from "razorpay";
 
 const razorpay = new Razorpay({
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     if (!sessionCookie) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    await adminAuth.verifySessionCookie(sessionCookie, true);
+    await (await getAdminAuth()).verifySessionCookie(sessionCookie, true);
 
     const { amount, currency = "INR", receipt } = await request.json();
 
@@ -38,3 +38,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create payment order" }, { status: 500 });
   }
 }
+
