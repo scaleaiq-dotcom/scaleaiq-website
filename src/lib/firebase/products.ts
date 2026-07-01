@@ -4,11 +4,11 @@ import type { Product, Category, ProductFilters } from "@/types/product";
 const PRODUCTS_COL = "products";
 const CATEGORIES_COL = "categories";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function prettify(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function docToProduct(id: string, data: Record<string, any>): Product {
   // The admin editor saves `price`/`salePrice` as strings; the public side uses
   // `price` (selling price) + `originalPrice` (struck-through).
