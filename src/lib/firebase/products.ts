@@ -1,5 +1,3 @@
-"use server";
-
 import { adminDb } from "./admin";
 import type { Product, Category, ProductFilters } from "@/types/product";
 

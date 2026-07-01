@@ -4,7 +4,7 @@ import {
   TrendingUp, Briefcase, Zap, Gift, Palette, BookOpen, type LucideIcon,
 } from "lucide-react";
 
-import { getCategories } from "@/lib/firebase/products";
+import type { Category } from "@/types/product";
 import { SectionHeader } from "@/components/home/section-header";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -18,14 +18,14 @@ const defaultAccent: Record<string, string> = {
   free: "#f59e0b", automation: "#7b3dff", design: "#f97316", ebooks: "#06b6d4",
 };
 
-export async function CategorySection() {
-  const cats = await getCategories().catch(() => []);
+export function CategorySection({ categories }: { categories: Category[] }) {
+  if (!categories.length) return null;
 
   return (
     <section id="categories" className="container mx-auto scroll-mt-24 px-4 py-6">
       <SectionHeader title="Popular Categories" viewAllHref="/explore" />
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
-        {cats.map((cat) => {
+        {categories.map((cat) => {
           const Icon = iconMap[cat.icon] ?? Bot;
           const accent = cat.accentColor ?? defaultAccent[cat.slug] ?? "#7b3dff";
           return (

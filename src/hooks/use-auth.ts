@@ -15,38 +15,46 @@ interface AuthState {
   loading: boolean;
 }
 
+// Cache the promise so parallel hook calls share one request
+let sessionPromise: Promise<AuthUser | null> | null = null;
+
+function fetchSession(): Promise<AuthUser | null> {
+  if (!sessionPromise) {
+    sessionPromise = fetch("/api/auth/session", { credentials: "same-origin" })
+      .then(r => r.json())
+      .then(d => d.user ?? null)
+      .catch(() => null);
+    // Clear after 30s so re-login refreshes the cache
+    setTimeout(() => { sessionPromise = null; }, 30_000);
+  }
+  return sessionPromise;
+}
+
 export function useAuth(): AuthState {
   const [state, setState] = React.useState<AuthState>({ user: null, loading: true });
 
   React.useEffect(() => {
-    let unsub: (() => void) | undefined;
+    // Kick off session check immediately (fast — no Firebase round-trip)
+    fetchSession().then(user => setState({ user, loading: false }));
 
-    async function init() {
+    // Also listen to Firebase auth for sign-in/sign-out events
+    let unsub: (() => void) | undefined;
+    async function listenFirebase() {
       const { onAuthStateChanged } = await import("firebase/auth");
       const { auth } = await import("@/lib/firebase/client");
-
       unsub = onAuthStateChanged(auth, async (firebaseUser) => {
         if (!firebaseUser) {
+          sessionPromise = null;
           setState({ user: null, loading: false });
           return;
         }
-        // Check if admin
-        const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "").split(",").map(e => e.trim());
-        const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email ?? "");
-        setState({
-          user: {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email ?? "",
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            isAdmin,
-          },
-          loading: false,
-        });
+        // After sign-in, re-fetch session to get server-confirmed isAdmin
+        sessionPromise = null;
+        const user = await fetchSession();
+        setState({ user, loading: false });
       });
     }
-
-    init();
+    listenFirebase();
     return () => unsub?.();
   }, []);
 
