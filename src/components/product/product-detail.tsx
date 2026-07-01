@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Download, Star, ShoppingCart, Heart, Share2, Clock,
-  CheckCircle2, User, Tag, Layers, FileText,
-  MessageSquare, Copy, Check, Bell, Package, ExternalLink,
+  CheckCircle2, User, Tag, Layers, FileText, Play,
+  MessageSquare, Copy, Check, Bell, Package, ExternalLink, Send, Loader2,
 } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatPrice } from "@/lib/format";
@@ -367,6 +367,33 @@ function OverviewTab({ product }: { product: Product }) {
         ))}
       </div>
 
+      {/* Experience feature buttons */}
+      {(product.sampleEnabled && product.sampleUrl) || (product.demoEnabled && product.demoUrl) || (product.extDemoEnabled && product.extDemoUrl) ? (
+        <div className="space-y-2.5">
+          <p className="text-sm font-semibold">Try Before You Buy</p>
+          <div className="flex flex-wrap gap-2">
+            {product.sampleEnabled && product.sampleUrl && (
+              <a href={product.sampleUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
+                <Download className="size-3.5" /> Free Sample
+              </a>
+            )}
+            {product.demoEnabled && product.demoUrl && (
+              <a href={product.demoUrl} target={product.demoMode === "tab" ? "_blank" : "_self"} rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
+                <Play className="size-3.5" /> Interactive Demo
+              </a>
+            )}
+            {product.extDemoEnabled && product.extDemoUrl && (
+              <a href={product.extDemoUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
+                <ExternalLink className="size-3.5" /> Live Demo
+              </a>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       {product.tags?.length > 0 && (
         <div>
           <p className="mb-2.5 text-sm font-semibold">Tags</p>
@@ -426,33 +453,45 @@ function ScreenshotsTab({ images }: { images: string[] }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // VIDEO TAB
 // ─────────────────────────────────────────────────────────────────────────────
+function toEmbedUrl(url: string): string {
+  if (!url) return "";
+  // youtube.com/watch?v=ID → youtube.com/embed/ID
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  // vimeo.com/ID → player.vimeo.com/video/ID
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  return url;
+}
+
 function VideoTab({ product }: { product: Product }) {
-  if (!product.videoUrl) {
+  const rawUrl = product.pvUrl || product.videoUrl || "";
+  if (!rawUrl) {
     return (
       <div className="flex flex-col items-center gap-3 py-12 text-center">
         <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
-          <FileText className="size-7 text-muted-foreground/40" />
+          <Play className="size-7 text-muted-foreground/40" />
         </div>
         <p className="font-medium">No video preview available</p>
         <p className="text-sm text-muted-foreground">The creator hasn&apos;t added a video for this product yet.</p>
       </div>
     );
   }
-  const isYoutube = product.videoUrl.includes("youtube.com") || product.videoUrl.includes("youtu.be");
-  const isVimeo = product.videoUrl.includes("vimeo.com");
+  const embedUrl = toEmbedUrl(rawUrl);
+  const isIframe = embedUrl.includes("youtube.com/embed") || embedUrl.includes("player.vimeo.com");
   return (
     <div>
       <h2 className="mb-4 font-heading text-xl font-bold">Product Video</h2>
       <div className="overflow-hidden rounded-2xl border">
-        {isYoutube || isVimeo ? (
+        {isIframe ? (
           <iframe
-            src={product.videoUrl}
+            src={embedUrl}
             className="aspect-video w-full"
             allowFullScreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           />
         ) : (
-          <video src={product.videoUrl} controls className="aspect-video w-full" poster={product.thumbnailUrl} />
+          <video src={rawUrl} controls className="aspect-video w-full" poster={product.thumbnailUrl} />
         )}
       </div>
     </div>
@@ -713,13 +752,102 @@ function ReviewsTab({ product }: { product: Product }) {
         </div>
       )}
 
-      {/* Write a review prompt */}
+      {/* Review form */}
+      <GuestReviewForm product={product} />
+    </div>
+  );
+}
+
+function GuestReviewForm({ product }: { product: Product }) {
+  const isFree = product.price === 0 || product.pricingType === "free";
+  const [form, setForm] = React.useState({ name: "", rating: 5, comment: "" });
+  const [hoveredStar, setHoveredStar] = React.useState(0);
+  const [loading, setLoading] = React.useState(false);
+  const [done, setDone] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  if (!isFree) {
+    return (
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
         <p className="text-sm font-semibold">✍️ Write a Review</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Only verified buyers can submit reviews. Purchase this product to unlock the review form.
         </p>
       </div>
-    </div>
+    );
+  }
+
+  if (done) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-2xl border bg-emerald-50 p-8 text-center dark:bg-emerald-900/10">
+        <CheckCircle2 className="size-10 text-emerald-500" />
+        <p className="font-semibold">Thank you for your review!</p>
+        <p className="text-sm text-muted-foreground">It will appear here after our team approves it.</p>
+      </div>
+    );
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.comment.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/reviews/product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, productTitle: product.title, ...form }),
+      });
+      if (!res.ok) throw new Error();
+      setDone(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-2xl border bg-card p-5 space-y-4">
+      <h3 className="font-heading text-base font-bold">✍️ Write a Review</h3>
+      <p className="text-xs text-muted-foreground -mt-2">Share your experience with this free product.</p>
+
+      {/* Stars */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Your Rating</label>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map(star => (
+            <button key={star} type="button"
+              onMouseEnter={() => setHoveredStar(star)}
+              onMouseLeave={() => setHoveredStar(0)}
+              onClick={() => setForm(p => ({ ...p, rating: star }))}
+            >
+              <Star className={`size-7 transition-colors ${star <= (hoveredStar || form.rating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Your Name <span className="text-rose-500">*</span></label>
+        <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+          placeholder="e.g. Rahul S."
+          className="h-10 w-full rounded-xl border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium">Your Review <span className="text-rose-500">*</span></label>
+        <textarea rows={3} value={form.comment} onChange={e => setForm(p => ({ ...p, comment: e.target.value }))}
+          placeholder="What did you think of this product?"
+          className="w-full resize-none rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+
+      {error && <p className="text-sm text-rose-500">{error}</p>}
+
+      <button type="submit" disabled={loading || !form.name.trim() || !form.comment.trim()}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
+        {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+        {loading ? "Submitting…" : "Submit Review"}
+      </button>
+    </form>
   );
 }

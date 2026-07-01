@@ -83,6 +83,19 @@ export interface Product {
   launchType?: string;
   externalUrl?: string;
 
+  // Experience features (set in admin editor)
+  pvEnabled?: boolean;
+  pvUrl?: string;
+  pdfEnabled?: boolean;
+  pdfPages?: string;
+  sampleEnabled?: boolean;
+  sampleUrl?: string;
+  demoEnabled?: boolean;
+  demoUrl?: string;
+  demoMode?: string;
+  extDemoEnabled?: boolean;
+  extDemoUrl?: string;
+
   // Legacy gradient (used as fallback when no thumbnailUrl)
   gradient?: string;
 }

@@ -65,6 +65,18 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     launchType: data.launchType,
     externalUrl,
     gradient: data.gradient,
+    // Experience features from editor
+    pvEnabled: data.pvEnabled ?? false,
+    pvUrl: data.pvUrl ?? "",
+    pdfEnabled: data.pdfEnabled ?? false,
+    pdfPages: data.pdfPages ?? "",
+    sampleEnabled: data.sampleEnabled ?? false,
+    sampleUrl: data.sampleUrl ?? "",
+    demoEnabled: data.demoEnabled ?? false,
+    demoUrl: data.demoUrl ?? "",
+    demoMode: data.demoMode ?? "tab",
+    extDemoEnabled: data.extDemoEnabled ?? false,
+    extDemoUrl: data.extDemoUrl ?? "",
     createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
   } as Product;
