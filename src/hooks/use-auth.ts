@@ -18,6 +18,14 @@ interface AuthState {
 // Cache the promise so parallel hook calls share one request
 let sessionPromise: Promise<AuthUser | null> | null = null;
 
+const AUTH_EVENT = "scaleaiq:auth-changed";
+
+/** Call after the session cookie is created/removed so every useAuth() re-checks. */
+export function notifyAuthChanged() {
+  sessionPromise = null;
+  window.dispatchEvent(new Event(AUTH_EVENT));
+}
+
 function fetchSession(): Promise<AuthUser | null> {
   if (!sessionPromise) {
     sessionPromise = fetch("/api/auth/session", { credentials: "same-origin" })
@@ -55,7 +63,15 @@ export function useAuth(): AuthState {
       });
     }
     listenFirebase();
-    return () => unsub?.();
+
+    // Re-check when sign-in/out completes (cookie created/removed)
+    const onAuthEvent = () => fetchSession().then(user => setState({ user, loading: false }));
+    window.addEventListener(AUTH_EVENT, onAuthEvent);
+
+    return () => {
+      unsub?.();
+      window.removeEventListener(AUTH_EVENT, onAuthEvent);
+    };
   }, []);
 
   return state;

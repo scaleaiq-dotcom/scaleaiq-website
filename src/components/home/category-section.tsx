@@ -24,7 +24,7 @@ export function CategorySection({ categories }: { categories: Category[] }) {
   return (
     <section id="categories" className="container mx-auto scroll-mt-24 px-4 py-6">
       <SectionHeader title="Popular Categories" viewAllHref="/explore" />
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3 lg:grid-cols-9">
         {categories.map((cat) => {
           const Icon = iconMap[cat.icon] ?? Bot;
           const accent = cat.accentColor ?? defaultAccent[cat.slug] ?? "#7b3dff";
@@ -32,19 +32,19 @@ export function CategorySection({ categories }: { categories: Category[] }) {
             <Link
               key={cat.slug}
               href={`/category/${cat.slug}`}
-              className="group flex flex-col items-center gap-2 rounded-2xl border bg-card px-2 py-4 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+              className="group flex flex-col items-center gap-1.5 rounded-xl border bg-card px-1.5 py-2.5 text-center transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md sm:gap-2 sm:rounded-2xl sm:px-2 sm:py-4"
             >
               <span
-                className="flex size-14 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110"
+                className="flex size-9 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110 sm:size-14 sm:rounded-xl"
                 style={{ background: accent + "20" }}
               >
-                <Icon className="size-7" strokeWidth={2.2} style={{ color: accent }} />
+                <Icon className="size-4.5 sm:size-7" strokeWidth={2.2} style={{ color: accent }} />
               </span>
-              <span className="text-xs font-semibold leading-tight text-foreground">
+              <span className="text-[11px] font-semibold leading-tight text-foreground sm:text-xs">
                 {cat.name}
               </span>
               {cat.productCount != null && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="hidden text-[10px] text-muted-foreground sm:block">
                   {cat.productCount}+ Products
                 </span>
               )}

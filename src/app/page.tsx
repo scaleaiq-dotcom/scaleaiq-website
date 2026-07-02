@@ -7,30 +7,20 @@ import { Testimonials } from "@/components/home/testimonials";
 import { ReviewForm } from "@/components/home/review-form";
 import { Newsletter } from "@/components/home/newsletter";
 import { adminDb } from "@/lib/firebase/admin";
-import {
-  getFeaturedProducts,
-  getTrendingProducts,
-  getFreeThisWeekProducts,
-  getBestSellerProducts,
-  getRecentProducts,
-  getProductsByCategory,
-  getCategories,
-} from "@/lib/firebase/products";
+import { getHomeProducts, getCategories } from "@/lib/firebase/products";
 
 // Revalidate every 60 seconds — admin changes show within 1 min, no cold-start on every visit
 export const revalidate = 60;
 
+const EMPTY_HOME = { featured: [], trending: [], freeThisWeek: [], topSellers: [], recent: [], prompts: [] };
+
 export default async function Home() {
-  const [featured, trending, freeThisWeek, topSellers, recent, prompts, categories, reviewsSnap] = await Promise.all([
-    getFeaturedProducts(8).catch(() => []),
-    getTrendingProducts(8).catch(() => []),
-    getFreeThisWeekProducts(8).catch(() => []),
-    getBestSellerProducts(8).catch(() => []),
-    getRecentProducts(8).catch(() => []),
-    getProductsByCategory("prompts", 8).catch(() => []),
+  const [home, categories, reviewsSnap] = await Promise.all([
+    getHomeProducts(8).catch(() => EMPTY_HOME),
     getCategories().catch(() => []),
     adminDb.collection("siteReviews").where("approved", "==", true).orderBy("createdAt", "desc").limit(6).get().catch(() => null),
   ]);
+  const { featured, trending, freeThisWeek, topSellers, recent, prompts } = home;
 
   const reviews = reviewsSnap?.docs.map(d => ({
     id: d.id,
@@ -42,8 +32,6 @@ export default async function Home() {
   return (
     <>
       <Hero />
-
-      <TrustStrip />
 
       <ProductGrid title="Featured Products" products={featured} viewAllHref="/explore" />
 
@@ -58,6 +46,8 @@ export default async function Home() {
       <ProductGrid title="Recently Added" products={recent} viewAllHref="/explore?sort=newest" />
 
       <ProductGrid title="Prompt Library" products={prompts} viewAllHref="/category/prompts" />
+
+      <TrustStrip />
 
       <WhyScaleAIQ />
 

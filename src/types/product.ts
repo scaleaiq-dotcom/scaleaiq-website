@@ -20,6 +20,38 @@ export interface ProductDelivery {
   toolSlug?: string;
 }
 
+/** Downloadable file shown on the product page. `file` URL is stripped for public display. */
+export interface ProductFile {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  version?: string;
+  /** Only present in purchase/delivery contexts — never on the public product page. */
+  file?: string;
+  order?: number;
+}
+
+export interface ProductTutorial {
+  id: string;
+  title: string;
+  duration?: string;
+  description?: string;
+  /** Only present when the tutorial is marked Free Preview. */
+  videoUrl?: string;
+  free?: boolean;
+  order?: number;
+}
+
+export interface ProductUpdate {
+  id: string;
+  version: string;
+  notes?: string;
+  newFeatures?: string;
+  bugFixes?: string;
+  date?: string;
+}
+
 export interface ProductReview {
   id: string;
   userId: string;
@@ -83,6 +115,9 @@ export interface Product {
   launchType?: string;
   externalUrl?: string;
 
+  // Access mode from editor Access tab: public | login_required | purchase_required | subscription_required
+  access?: string;
+
   // Experience features (set in admin editor)
   pvEnabled?: boolean;
   pvUrl?: string;
@@ -95,6 +130,25 @@ export interface Product {
   demoMode?: string;
   extDemoEnabled?: boolean;
   extDemoUrl?: string;
+
+  // Bundle contents & learning material (from editor tabs — sanitized for public display)
+  downloads?: ProductFile[];
+  tutorials?: ProductTutorial[];
+  updates?: ProductUpdate[];
+
+  // Content tab (newline-separated lists in the editor)
+  features?: string;
+  benefits?: string;
+  requirements?: string;
+  audience?: string;
+  included?: string;
+
+  // Resources tab
+  docUrl?: string;
+  githubUrl?: string;
+  websiteUrl?: string;
+  communityUrl?: string;
+  supportEmail?: string;
 
   // Legacy gradient (used as fallback when no thumbnailUrl)
   gradient?: string;

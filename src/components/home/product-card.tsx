@@ -23,7 +23,7 @@ export function ProductCard({
   return (
     <div className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg">
       {/* Cover */}
-      <Link href={href} className="relative block aspect-[4/3] overflow-hidden">
+      <Link href={href} className="relative block aspect-video overflow-hidden sm:aspect-[4/3]">
         {product.thumbnailUrl ? (
           <Image
             src={product.thumbnailUrl}
@@ -76,7 +76,7 @@ export function ProductCard({
       </Link>
 
       {/* Body */}
-      <div className="flex flex-1 flex-col gap-1.5 p-3">
+      <div className="flex flex-1 flex-col gap-1 p-2.5 sm:gap-1.5 sm:p-3">
         <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           {product.categoryLabel}
         </span>

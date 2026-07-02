@@ -251,9 +251,12 @@ export function CheckoutClient() {
             Order ID: <span className="font-mono font-semibold">{orderId}</span>
           </p>
         )}
+        <p className="mt-2 text-xs text-muted-foreground">
+          📧 A receipt with your download links has been emailed to you.
+        </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/dashboard/library"
+            href="/dashboard/downloads"
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Go to My Library <ChevronRight className="size-4" />

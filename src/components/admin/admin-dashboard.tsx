@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   IndianRupee, ShoppingBag, Package, Users, Download, CreditCard,
   TrendingUp, Plus, Tag, Bell, CheckCircle2, Circle, CalendarDays,
-  Loader2, RefreshCw,
+  Loader2, RefreshCw, HardDrive, ExternalLink, Database,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -221,6 +221,8 @@ export function AdminDashboard() {
         ))}
       </div>
 
+      <UsageCard />
+
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2">
         <Link href="/admin/products/new" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5 text-xs")}><Plus className="size-3.5" /> Add Product</Link>
@@ -379,6 +381,60 @@ export function AdminDashboard() {
         </div>
       </div>
 
+    </div>
+  );
+}
+
+/* ─── Firebase usage (storage measured live; reads/writes in console) ── */
+function UsageCard() {
+  const [used, setUsed] = React.useState<number | null>(null);
+  const [quota, setQuota] = React.useState(1024 ** 3);
+
+  React.useEffect(() => {
+    fetch("/api/admin/storage")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) { setUsed(d.totalBytes ?? 0); setQuota(d.quotaBytes ?? 1024 ** 3); } })
+      .catch(() => {});
+  }, []);
+
+  const fmt = (b: number) => b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(2)} GB` : b >= 1024 ** 2 ? `${(b / 1024 ** 2).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`;
+  const pct = used === null ? 0 : Math.min((used / quota) * 100, 100);
+  const barColor = pct > 90 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : "bg-primary";
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {/* Storage — live */}
+      <Link href="/admin/file-manager"
+        className="rounded-xl border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <HardDrive className="size-3.5" /> File Storage
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            {used === null ? "…" : <>{fmt(used)} / {fmt(quota)} free tier</>}
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${Math.max(pct, 1)}%` }} />
+        </div>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">Manage &amp; delete files in File Manager →</p>
+      </Link>
+
+      {/* Firestore reads/writes — console only */}
+      <a href={`https://console.firebase.google.com/project/${projectId}/usage`} target="_blank" rel="noopener noreferrer"
+        className="rounded-xl border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <Database className="size-3.5" /> Database Reads / Writes
+          </span>
+          <ExternalLink className="size-3 text-muted-foreground" />
+        </div>
+        <p className="text-sm font-semibold">Free daily quota: 50K reads · 20K writes</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Firebase only shows live counts in its own console — tap to open your usage page.
+        </p>
+      </a>
     </div>
   );
 }

@@ -33,7 +33,15 @@ type TabId = (typeof TABS)[number]["id"];
 
 // Categories loaded from Firestore at runtime
 const PTYPES = ["Course","AI Tool","Prompt Pack","Automation","Template","Service","AI Agent","Download","Workshop","External App"];
-const DL_TYPES = ["PDF","ZIP","Prompt Pack","Workflow","Code","Template","Checklist","Bonus","Certificate","Other"];
+const DL_TYPES = ["PDF","ZIP","RAR","Excel","CSV","Word","Code","Audio","Video File","Image","Image Pack","Prompt Pack","Workflow","Template","Checklist","Video URL","Website Link","Bonus","Certificate","Other"];
+// File-picker filters per type (upload mode)
+const DL_ACCEPT: Record<string, string> = {
+  PDF: ".pdf", ZIP: ".zip", RAR: ".rar,.7z", Excel: ".xls,.xlsx", CSV: ".csv",
+  Word: ".doc,.docx", Code: ".zip,.js,.ts,.py,.html,.css,.json,.txt",
+  Audio: "audio/*", "Video File": "video/*", Image: "image/*", "Image Pack": ".zip,image/*",
+};
+// Link-only types: no upload, paste a URL instead
+const DL_LINK_TYPES = new Set(["Video URL", "Website Link"]);
 const LAUNCH = ["Internal Page","External URL","Download","Course","AI Tool","AI Agent","API","Service"];
 
 function slugify(t: string) {
@@ -46,7 +54,7 @@ interface Tutorial {
 }
 interface DLItem {
   id: string; type: string; title: string; description: string;
-  version: string; file: string; order: number;
+  version: string; file: string; order: number; source: "url" | "upload";
 }
 interface VUpdate {
   id: string; version: string; notes: string;
@@ -137,6 +145,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
   const [successMsg, setSuccessMsg] = React.useState("");
   const [uploading, setUploading] = React.useState<keyof FS | null>(null);
   const [uploadError, setUploadError] = React.useState("");
+  const [uploadingDl, setUploadingDl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     fetch("/api/admin/categories")
@@ -261,7 +270,34 @@ export function ProductEditor({ productId }: { productId?: string }) {
     } finally { setSaving(false); }
   }
 
-  async function uploadImage(file: File, field: keyof FS) {
+  // Shrink images before upload: max 1600px wide, ~82% JPEG quality.
+  // A 1.5 MB phone photo becomes ~150-250 KB — protects the 1 GB storage
+  // allowance and makes product pages load faster. PNGs with transparency
+  // are kept as PNG; GIFs/SVGs are left untouched.
+  async function compressImage(file: File): Promise<File> {
+    if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") return file;
+    if (file.size < 200 * 1024) return file; // already small
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 1600 / bitmap.width);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const isPng = file.type === "image/png";
+      const blob: Blob | null = await new Promise(res =>
+        canvas.toBlob(res, isPng ? "image/png" : "image/jpeg", 0.82)
+      );
+      if (!blob || blob.size >= file.size) return file; // compression didn't help
+      const newName = file.name.replace(/\.[^.]+$/, isPng ? ".png" : ".jpg");
+      return new File([blob], newName, { type: blob.type });
+    } catch {
+      return file; // any failure → upload the original
+    }
+  }
+
+  async function uploadImage(rawFile: File, field: keyof FS) {
+    const file = await compressImage(rawFile);
     setUploadError("");
     if (file.size > 5 * 1024 * 1024) {
       setUploadError("Image is larger than 5MB. Choose a smaller file or paste a URL.");
@@ -282,11 +318,77 @@ export function ProductEditor({ productId }: { productId?: string }) {
     }
   }
 
+  // Guess the download type from the file itself (used by bulk upload)
+  function inferDlType(file: File): string {
+    const mt = file.type;
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (mt.startsWith("image/")) return "Image";
+    if (mt.startsWith("audio/")) return "Audio";
+    if (mt.startsWith("video/")) return "Video File";
+    if (ext === "pdf") return "PDF";
+    if (ext === "zip") return "ZIP";
+    if (ext === "rar" || ext === "7z") return "RAR";
+    if (ext === "xls" || ext === "xlsx") return "Excel";
+    if (ext === "csv") return "CSV";
+    if (ext === "doc" || ext === "docx") return "Word";
+    return "Other";
+  }
+
+  // Bulk upload: one Downloads entry per selected file, titles from filenames.
+  async function uploadDownloadMulti(fileList: FileList) {
+    const files = Array.from(fileList);
+    for (const file of files) {
+      if (file.size > 50 * 1024 * 1024) {
+        setUploadError(`"${file.name}" is larger than 50 MB — skipped.`);
+        continue;
+      }
+      const id = crypto.randomUUID();
+      const title = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+      setForm(p => ({ ...p, downloads: [...p.downloads, {
+        id, type: inferDlType(file), title, description: "", version: "1.0",
+        file: "", order: p.downloads.length + 1, source: "upload" as const,
+      }] }));
+      setUploadingDl(id);
+      try {
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `products/${productId ?? "new"}/downloads/${Date.now()}-${safeName}`;
+        const r = storageRef(storage, path);
+        await uploadBytes(r, file);
+        const dlUrl = await getDownloadURL(r);
+        setForm(p => ({ ...p, downloads: p.downloads.map(d => d.id === id ? { ...d, file: dlUrl } : d) }));
+      } catch {
+        setUploadError(`Upload failed for "${file.name}". Check Firebase Storage rules.`);
+        setForm(p => ({ ...p, downloads: p.downloads.filter(d => d.id !== id) }));
+      }
+    }
+    setUploadingDl(null);
+  }
+
+  async function uploadDownload(dlId: string, file: File) {
+    if (file.size > 50 * 1024 * 1024) {
+      setUploadError("File is larger than 50 MB.");
+      return;
+    }
+    setUploadingDl(dlId);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `products/${productId ?? "new"}/downloads/${Date.now()}-${safeName}`;
+      const r = storageRef(storage, path);
+      await uploadBytes(r, file);
+      const dlUrl = await getDownloadURL(r);
+      setD(dlId, "file", dlUrl);
+    } catch {
+      setUploadError("Upload failed. Check Firebase Storage rules or paste a URL instead.");
+    } finally {
+      setUploadingDl(null);
+    }
+  }
+
   const addT = () => upd("tutorials", [...form.tutorials, { id: crypto.randomUUID(), title: "", videoUrl: "", duration: "", description: "", order: form.tutorials.length + 1, free: true }]);
   const setT = (id: string, k: keyof Tutorial, v: unknown) => upd("tutorials", form.tutorials.map(t => t.id === id ? { ...t, [k]: v } : t));
   const delT = (id: string) => upd("tutorials", form.tutorials.filter(t => t.id !== id));
 
-  const addD = () => upd("downloads", [...form.downloads, { id: crypto.randomUUID(), type: "PDF", title: "", description: "", version: "1.0", file: "", order: form.downloads.length + 1 }]);
+  const addD = () => upd("downloads", [...form.downloads, { id: crypto.randomUUID(), type: "PDF", title: "", description: "", version: "1.0", file: "", order: form.downloads.length + 1, source: "url" as const }]);
   const setD = (id: string, k: keyof DLItem, v: unknown) => upd("downloads", form.downloads.map(d => d.id === id ? { ...d, [k]: v } : d));
   const delD = (id: string) => upd("downloads", form.downloads.filter(d => d.id !== id));
 
@@ -661,10 +763,22 @@ export function ProductEditor({ productId }: { productId?: string }) {
         {/* ── DOWNLOADS ── */}
         {tab === "downloads" && (
           <div className="space-y-4 max-w-2xl">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium">{form.downloads.length} Downloadable Files</p>
-              <Button size="sm" variant="outline" onClick={addD}><Plus className="mr-1 size-3.5" />Add File</Button>
+              <div className="flex items-center gap-2">
+                <label className={cn("inline-flex cursor-pointer items-center rounded-md border px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary",
+                  uploadingDl && "pointer-events-none opacity-60")}>
+                  {uploadingDl ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : <Upload className="mr-1 size-3.5" />}
+                  Upload Multiple
+                  <input type="file" multiple className="hidden"
+                    onChange={e => { if (e.target.files?.length) uploadDownloadMulti(e.target.files); e.target.value = ""; }} />
+                </label>
+                <Button size="sm" variant="outline" onClick={addD}><Plus className="mr-1 size-3.5" />Add File</Button>
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              &ldquo;Upload Multiple&rdquo; lets you select many files at once — each becomes its own entry with the type auto-detected. Titles are taken from filenames (you can edit them after).
+            </p>
             {form.downloads.length === 0 && (
               <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed py-12 text-center">
                 <Download className="size-10 text-muted-foreground/30" />
@@ -691,7 +805,43 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 <Input value={d.title} onChange={e => setD(d.id, "title", e.target.value)} placeholder="File title" />
                 <textarea className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none" rows={2}
                   value={d.description} onChange={e => setD(d.id, "description", e.target.value)} placeholder="What does this file contain?" />
-                <Input type="url" value={d.file} onChange={e => setD(d.id, "file", e.target.value)} placeholder="File URL" />
+                {/* Source toggle: URL vs Upload (link-only types are always URL) */}
+                {!DL_LINK_TYPES.has(d.type) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Source:</span>
+                    {(["upload","url"] as const).map(s => (
+                      <button key={s} onClick={() => setD(d.id, "source", s)}
+                        className={cn("rounded-md border px-3 py-1 text-xs font-medium transition-colors",
+                          (d.source ?? "url") === s ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground hover:border-primary/50")}>
+                        {s === "url" ? "Paste URL" : "Upload File"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {DL_LINK_TYPES.has(d.type) || (d.source ?? "url") === "url" ? (
+                  <Input type="url" value={d.file} onChange={e => setD(d.id, "file", e.target.value)}
+                    placeholder={d.type === "Video URL" ? "https://youtube.com/watch?v=... or Vimeo link"
+                      : d.type === "Website Link" ? "https://your-external-site.com/..."
+                      : "https://... (direct file link)"}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <label className={cn("flex cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-dashed px-4 py-3 text-sm transition-colors",
+                      uploadingDl === d.id ? "opacity-60" : "hover:border-primary/50 hover:bg-muted/30")}>
+                      {uploadingDl === d.id
+                        ? <><Loader2 className="size-4 animate-spin" /> Uploading…</>
+                        : <><Upload className="size-4" /> Choose {d.type} file (max 50 MB)</>}
+                      <input type="file" className="hidden" disabled={uploadingDl === d.id}
+                        accept={DL_ACCEPT[d.type]}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadDownload(d.id, f); e.target.value = ""; }} />
+                    </label>
+                    {d.file && (
+                      <p className="break-all rounded-md bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
+                        ✓ {d.file.split("?")[0].split("/").pop()}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -749,8 +899,8 @@ export function ProductEditor({ productId }: { productId?: string }) {
               <p className="mb-3 text-sm font-medium">Access Permission</p>
               <div className="space-y-2">
                 {[
-                  { id: "public", l: "Public", d: "Anyone can access without sign-in" },
-                  { id: "login_required", l: "Login Required", d: "User must be signed in" },
+                  { id: "public", l: "Free — Open to Everyone", d: "Anyone can download. Name & email are optional (they can skip). Best for small files & lead capture." },
+                  { id: "login_required", l: "Free — Google Sign-in Only", d: "Must sign in with a Google account to download. One download per account. Best for large/valuable files." },
                   { id: "purchase_required", l: "Purchase Required", d: "User must purchase this product" },
                   { id: "subscription_required", l: "Subscription Required", d: "Active subscription required" },
                 ].map(a => (

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/lib/firebase/admin";
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "").split(",").map(e => e.trim()).filter(Boolean);
+import { isAuthorizedAdmin, verifySessionCached } from "@/lib/admin-auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,9 +34,9 @@ export async function GET(req: NextRequest) {
     const session = req.cookies.get("session")?.value;
     if (!session) return NextResponse.json({ user: null });
 
-    const auth = await getAdminAuth();
-    const decoded = await auth.verifySessionCookie(session, true);
-    const isAdmin = ADMIN_EMAILS.includes(decoded.email ?? "");
+    const decoded = await verifySessionCached(session);
+    if (!decoded) return NextResponse.json({ user: null });
+    const isAdmin = await isAuthorizedAdmin(decoded);
     return NextResponse.json({ user: { uid: decoded.uid, email: decoded.email, isAdmin } });
   } catch {
     return NextResponse.json({ user: null });

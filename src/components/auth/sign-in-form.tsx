@@ -7,6 +7,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { notifyAuthChanged } from "@/hooks/use-auth";
 
 export function SignInForm() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export function SignInForm() {
       const { user } = await signInWithEmailAndPassword(auth, email, password);
       const idToken = await user.getIdToken();
       await createSession(idToken);
+      notifyAuthChanged();
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect") ?? "/";
       router.refresh();
@@ -47,23 +49,59 @@ export function SignInForm() {
     }
   }
 
+  // Completes Google sign-in when the page returns from a full-page redirect
+  // (fallback used when the browser blocks the popup).
+  React.useEffect(() => {
+    (async () => {
+      const { getRedirectResult } = await import("firebase/auth");
+      const { auth } = await import("@/lib/firebase/client");
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          setLoading(true);
+          const idToken = await result.user.getIdToken();
+          await createSession(idToken);
+          notifyAuthChanged();
+          const params = new URLSearchParams(window.location.search);
+          router.refresh();
+          router.push(params.get("redirect") ?? "/");
+        }
+      } catch {
+        // No redirect pending — nothing to do.
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleGoogle() {
     setError("");
     setLoading(true);
     try {
-      const { signInWithPopup, GoogleAuthProvider } = await import("firebase/auth");
+      const { signInWithPopup, signInWithRedirect, GoogleAuthProvider } = await import("firebase/auth");
       const { auth } = await import("@/lib/firebase/client");
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+      let result;
+      try {
+        result = await signInWithPopup(auth, provider);
+      } catch (popupErr: unknown) {
+        const code = popupErr instanceof Error ? popupErr.message : "";
+        if (code.includes("popup-blocked") || code.includes("popup-closed") || code.includes("cancelled-popup-request")) {
+          // Browser blocked the popup — use a full-page redirect instead.
+          await signInWithRedirect(auth, provider);
+          return; // page navigates away; sign-in completes via getRedirectResult above
+        }
+        throw popupErr;
+      }
       const idToken = await result.user.getIdToken();
       await createSession(idToken);
+      notifyAuthChanged();
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect") ?? "/";
       router.refresh();
       router.push(redirect);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Google sign-in failed";
-      setError(msg);
-    } finally {
+      setError(msg.includes("popup") ? "Sign-in window was blocked. Please allow popups for this site, or try again." : msg);
       setLoading(false);
     }
   }

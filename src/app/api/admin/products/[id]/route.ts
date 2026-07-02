@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth, adminDb } from "@/lib/firebase/admin";
+import { adminDb, adminStorage } from "@/lib/firebase/admin";
+import { requireAdmin } from "@/lib/admin-auth";
 import { FieldValue } from "firebase-admin/firestore";
-
-async function requireAdmin(req: NextRequest) {
-  const session = req.cookies.get("session")?.value;
-  if (!session) return null;
-  try {
-    const decoded = await (await getAdminAuth()).verifySessionCookie(session, true);
-    const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map(e => e.trim());
-    if (!adminEmails.includes(decoded.email ?? "")) return null;
-    return decoded;
-  } catch { return null; }
-}
 
 type Params = Promise<{ id: string }>;
 
@@ -35,5 +25,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Params }) {
   if (!await requireAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   await adminDb.collection("products").doc(id).delete();
+
+  // Free up storage: remove every file uploaded under this product
+  // (thumbnails, banners, downloads). Fail-soft — the product is already
+  // deleted; leftover files can still be cleaned in File Manager.
+  try {
+    await adminStorage.bucket().deleteFiles({ prefix: `products/${id}/` });
+  } catch (err) {
+    console.error("Storage cleanup failed for product", id, err);
+  }
+
   return NextResponse.json({ ok: true });
 }

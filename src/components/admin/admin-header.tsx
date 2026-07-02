@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, ExternalLink, Moon, Sun, Search, ChevronDown, LogOut, User, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, notifyAuthChanged } from "@/hooks/use-auth";
 
 const titles: Record<string, string> = {
   "/admin": "Dashboard",
@@ -47,6 +47,7 @@ export function AdminHeader() {
 
   async function handleSignOut() {
     await fetch("/api/auth/session", { method: "DELETE" });
+    notifyAuthChanged();
     const { signOut, getAuth } = await import("firebase/auth");
     await signOut(getAuth());
     router.push("/sign-in");

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCart } from "@/store/cart";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, notifyAuthChanged } from "@/hooks/use-auth";
 import {
   Bot,
   Briefcase,
@@ -253,6 +253,7 @@ function UserMenu() {
     const { auth } = await import("@/lib/firebase/client");
     await signOut(auth);
     await fetch("/api/auth/session", { method: "DELETE" });
+    notifyAuthChanged();
     setOpen(false);
     router.push("/");
     router.refresh();

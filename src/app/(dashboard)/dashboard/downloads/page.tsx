@@ -5,49 +5,40 @@ import Link from "next/link";
 import { Download, FileDown, Clock, ExternalLink, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
-interface DownloadItem {
-  orderId: string;
-  productTitle: string;
-  productSlug?: string;
-  downloadUrl?: string;
+interface LibraryFile {
+  id: string;
+  type: string;
+  title: string;
+  url: string;
+}
+
+interface LibraryItem {
+  productId: string;
+  title: string;
+  slug: string;
   thumbnail?: string;
-  amount: number;
-  createdAt: string | null;
+  externalUrl?: string;
+  paymentMethod: string;
+  acquiredAt: string | null;
+  files: LibraryFile[];
 }
 
 export default function DownloadsPage() {
   const { user, loading } = useAuth();
-  const [items, setItems] = React.useState<DownloadItem[]>([]);
+  const [items, setItems] = React.useState<LibraryItem[]>([]);
   const [dataLoading, setDataLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
 
   React.useEffect(() => {
+    if (loading) return;
     if (!user) { setDataLoading(false); return; }
 
-    async function load() {
-      const { db } = await import("@/lib/firebase/client");
-      const { collection, query, where, orderBy, getDocs } = await import("firebase/firestore");
-
-      const snap = await getDocs(
-        query(collection(db, "orders"), where("userId", "==", user!.uid), orderBy("createdAt", "desc"))
-      );
-
-      setItems(snap.docs.map(d => {
-        const data = d.data();
-        return {
-          orderId: d.id,
-          productTitle: data.productTitle ?? "Product",
-          productSlug: data.productSlug,
-          downloadUrl: data.downloadUrl,
-          thumbnail: data.thumbnail,
-          amount: data.amount ?? 0,
-          createdAt: data.createdAt?.toDate?.()?.toLocaleDateString("en-IN") ?? null,
-        };
-      }));
-      setDataLoading(false);
-    }
-
-    load().catch(() => setDataLoading(false));
-  }, [user]);
+    fetch("/api/my-library")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => setItems(d.items ?? []))
+      .catch(() => setError("Could not load your library. Please refresh."))
+      .finally(() => setDataLoading(false));
+  }, [user, loading]);
 
   if (loading || dataLoading) {
     return (
@@ -59,13 +50,19 @@ export default function DownloadsPage() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">All your downloadable files in one place. Re-download anytime.</p>
+      <p className="text-sm text-muted-foreground">
+        Everything you&apos;ve claimed or purchased — re-download anytime. New files added by the seller appear here automatically.
+      </p>
 
-      {items.length === 0 ? (
+      {error && (
+        <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
+      )}
+
+      {items.length === 0 && !error ? (
         <div className="rounded-xl border bg-card p-12 text-center">
           <Download className="mx-auto size-12 text-muted-foreground/40" />
-          <p className="mt-3 font-heading text-lg font-semibold">No downloads yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">Files from your purchases will appear here</p>
+          <p className="mt-3 font-heading text-lg font-semibold">Your library is empty</p>
+          <p className="mt-1 text-sm text-muted-foreground">Free claims and purchases will appear here</p>
           <Link href="/explore" className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
             Explore Products
           </Link>
@@ -73,37 +70,52 @@ export default function DownloadsPage() {
       ) : (
         <div className="space-y-3">
           {items.map(item => (
-            <div key={item.orderId} className="flex items-center gap-4 rounded-xl border bg-card p-4">
-              {item.thumbnail ? (
-                <img src={item.thumbnail} alt={item.productTitle} className="size-14 rounded-lg object-cover shrink-0" />
-              ) : (
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <FileDown className="size-6 text-primary" />
+            <div key={item.productId} className="rounded-xl border bg-card p-4">
+              <div className="flex items-center gap-4">
+                {item.thumbnail ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.thumbnail} alt={item.title} className="size-14 shrink-0 rounded-lg object-cover" />
+                ) : (
+                  <div className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <FileDown className="size-6 text-primary" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <Link href={`/product/${item.slug}`} className="truncate font-medium hover:text-primary">
+                    {item.title}
+                  </Link>
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="size-3" />
+                    {item.acquiredAt ? new Date(item.acquiredAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                    <span className={item.paymentMethod === "free"
+                      ? "rounded-md bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-600"
+                      : "rounded-md bg-primary/10 px-1.5 py-0.5 font-semibold text-primary"}>
+                      {item.paymentMethod === "free" ? "FREE" : "PURCHASED"}
+                    </span>
+                  </div>
+                </div>
+                {item.externalUrl && (
+                  <a href={item.externalUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+                    <ExternalLink className="size-3.5" /> Open App
+                  </a>
+                )}
+              </div>
+
+              {item.files.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+                  {item.files.map(f => (
+                    <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer" download
+                      className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/40 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
+                      <Download className="size-3.5" /> {f.title}
+                      <span className="rounded bg-card px-1 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">{f.type}</span>
+                    </a>
+                  ))}
                 </div>
               )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{item.productTitle}</p>
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="size-3" />
-                  {item.createdAt ?? "—"}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {item.productSlug && (
-                  <Link href={`/product/${item.productSlug}`}
-                    className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                    <ExternalLink className="size-3.5" />
-                  </Link>
-                )}
-                {item.downloadUrl ? (
-                  <a href={item.downloadUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
-                    <Download className="size-3.5" /> Download
-                  </a>
-                ) : (
-                  <span className="rounded-lg bg-muted px-3 py-1.5 text-xs text-muted-foreground">No file</span>
-                )}
-              </div>
+              {item.files.length === 0 && !item.externalUrl && (
+                <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">No files attached yet — check back soon.</p>
+              )}
             </div>
           ))}
         </div>

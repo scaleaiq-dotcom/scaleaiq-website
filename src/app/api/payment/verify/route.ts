@@ -1,16 +1,17 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { getAdminAuth, adminDb } from "@/lib/firebase/admin";
+import { adminDb } from "@/lib/firebase/admin";
+import { verifySessionCached } from "@/lib/admin-auth";
 import { FieldValue } from "firebase-admin/firestore";
+import { sendEmail, orderReceiptHtml, type ReceiptFile } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
     // Verify auth
-    const sessionCookie = request.cookies.get("session")?.value;
-    if (!sessionCookie) {
+    const decoded = await verifySessionCached(request.cookies.get("session")?.value);
+    if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const decoded = await (await getAdminAuth()).verifySessionCookie(sessionCookie, true);
     const uid = decoded.uid;
     const email = decoded.email ?? "";
 
@@ -89,6 +90,8 @@ export async function POST(request: NextRequest) {
         title: item.title,
         category: item.category,
         orderId,
+        paymentMethod: "purchase",
+        acquiredAt: FieldValue.serverTimestamp(),
         accessGrantedAt: FieldValue.serverTimestamp(),
       });
 
@@ -100,6 +103,36 @@ export async function POST(request: NextRequest) {
       });
     }
     await batch.commit();
+
+    // Receipt email with download links (fire-and-forget)
+    (async () => {
+      const allFiles: ReceiptFile[] = [];
+      let firstExternalUrl: string | undefined;
+      for (const item of order.items) {
+        const prodSnap = await adminDb.collection("products").doc(item.productId).get();
+        const p = prodSnap.exists ? prodSnap.data()! : {};
+        (Array.isArray(p.downloads) ? p.downloads : [])
+          .filter((f: Record<string, unknown>) => f.file)
+          .forEach((f: Record<string, unknown>) => allFiles.push({
+            title: `${item.title} — ${(f.title as string) || (f.type as string) || "Download"}`,
+            url: f.file as string,
+          }));
+        if (!firstExternalUrl && p.launchUrl) firstExternalUrl = p.launchUrl;
+      }
+      await sendEmail({
+        to: order.billingEmail || email,
+        subject: `Order confirmed: ${order.productTitle} — ScaleAIQ`,
+        html: orderReceiptHtml({
+          name: order.billingName,
+          orderId,
+          items: order.items.map((i: { title: string; price: number }) => ({ title: i.title, price: i.price })),
+          total: order.total,
+          isFree: false,
+          files: allFiles,
+          externalUrl: firstExternalUrl,
+        }),
+      });
+    })().catch(err => console.error("Receipt email error:", err));
 
     return NextResponse.json({ orderId, status: "completed" });
   } catch (err) {

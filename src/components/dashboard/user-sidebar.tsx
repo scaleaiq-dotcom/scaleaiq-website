@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, BookOpen, Wrench, Download, Award,
+  LayoutDashboard, BookOpen, Wrench, Award,
   Heart, Receipt, CreditCard, Trophy, User, Settings,
   X, Menu, LogOut,
 } from "lucide-react";
@@ -13,10 +13,9 @@ import { cn } from "@/lib/utils";
 
 const nav = [
   { label: "Dashboard",      href: "/dashboard",               icon: LayoutDashboard },
-  { label: "My Library",     href: "/dashboard/library",       icon: BookOpen },
+  { label: "My Library",     href: "/dashboard/downloads",     icon: BookOpen },
   { label: "My Courses",     href: "/dashboard/courses",       icon: BookOpen },
   { label: "My Tools",       href: "/dashboard/tools",         icon: Wrench },
-  { label: "Downloads",      href: "/dashboard/downloads",     icon: Download },
   { label: "Certificates",   href: "/dashboard/certificates",  icon: Award },
   { label: "Wishlist",       href: "/dashboard/wishlist",      icon: Heart },
   { label: "Invoices",       href: "/dashboard/invoices",      icon: Receipt },

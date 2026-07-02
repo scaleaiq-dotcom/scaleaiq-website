@@ -8,6 +8,8 @@ import {
   Download, Star, ShoppingCart, Heart, Share2, Clock,
   CheckCircle2, User, Tag, Layers, FileText, Play,
   MessageSquare, Copy, Check, Bell, Package, ExternalLink, Send, Loader2,
+  FileArchive, FileSpreadsheet, FileCode2, Music, Film, ImageIcon, Link2,
+  BookOpen, Globe, Mail, Video, Lock, ListChecks, Users2, Sparkles,
 } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatPrice } from "@/lib/format";
@@ -15,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/home/product-card";
 import { RatingStars } from "@/components/common/rating-stars";
 import { useCart } from "@/store/cart";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, notifyAuthChanged } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 // ─── Tabs ────────────────────────────────────────────────────────────────────
@@ -38,6 +40,7 @@ interface Props { product: Product; related: Product[] }
 export function ProductDetail({ product, related }: Props) {
   const [activeTab, setActiveTab] = React.useState<TabId>("overview");
   const [selectedImage, setSelectedImage] = React.useState(0);
+  const [claimOpen, setClaimOpen] = React.useState(false);
   const { addItem } = useCart();
   const { user } = useAuth();
   const router = useRouter();
@@ -67,7 +70,9 @@ export function ProductDetail({ product, related }: Props) {
   }
 
   function handleGetFree() {
-    requireAuth(() => router.push("/dashboard/downloads"));
+    // The claim dialog handles both modes: open (guest, details optional)
+    // and protected (Google sign-in required, right inside the dialog).
+    setClaimOpen(true);
   }
 
   function handleBuyNow() {
@@ -203,7 +208,225 @@ export function ProductDetail({ product, related }: Props) {
 
         </div>
       </div>
+
+      {claimOpen && (
+        <FreeClaimModal
+          product={product}
+          signedIn={!!user}
+          onClose={() => setClaimOpen(false)}
+        />
+      )}
     </main>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FREE CLAIM MODAL — the "free purchase" flow
+// ─────────────────────────────────────────────────────────────────────────────
+function FreeClaimModal({ product, signedIn, onClose }: {
+  product: Product; signedIn: boolean; onClose: () => void;
+}) {
+  const needsGoogle = product.access === "login_required" || product.access === "purchase_required";
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [result, setResult] = React.useState<{
+    files: { id: string; type: string; title: string; url: string }[];
+    externalUrl?: string;
+    alreadyClaimed: boolean;
+  } | null>(null);
+
+  async function claim(e?: React.FormEvent, skipDetails = false) {
+    e?.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      const res = await fetch("/api/free-claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(skipDetails
+          ? { productId: product.id }
+          : { productId: product.id, name, email }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setError(
+          d.error === "signin_required" ? "Please sign in with Google to download this product."
+          : d.error === "google_required" ? "This download requires a Google account. Please sign in with Google (your current account uses email/password)."
+          : d.error ?? "Something went wrong."
+        );
+        return;
+      }
+      setResult({ files: d.files ?? [], externalUrl: d.externalUrl, alreadyClaimed: d.alreadyClaimed });
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Google sign-in right inside the dialog (popup, with full-page redirect fallback)
+  async function googleSignIn() {
+    setError("");
+    setBusy(true);
+    try {
+      const { signInWithPopup, signInWithRedirect, GoogleAuthProvider } = await import("firebase/auth");
+      const { auth } = await import("@/lib/firebase/client");
+      const provider = new GoogleAuthProvider();
+      let result;
+      try {
+        result = await signInWithPopup(auth, provider);
+      } catch (popupErr: unknown) {
+        const code = popupErr instanceof Error ? popupErr.message : "";
+        if (code.includes("popup-blocked") || code.includes("cancelled-popup-request")) {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        throw popupErr;
+      }
+      const idToken = await result.user.getIdToken();
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      notifyAuthChanged();
+      await claim();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Google sign-in failed";
+      setError(msg.includes("popup-closed") ? "Sign-in was cancelled." : msg);
+      setBusy(false);
+    }
+  }
+
+  // Already-signed-in users on open products claim instantly on open.
+  const autoClaimed = React.useRef(false);
+  React.useEffect(() => {
+    if (signedIn && !autoClaimed.current) {
+      autoClaimed.current = true;
+      claim();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        {!result ? (
+          <>
+            <h2 className="font-heading text-xl font-bold">Get &ldquo;{product.title}&rdquo; Free</h2>
+            {signedIn ? (
+              <>
+                <div className="mt-6 flex items-center justify-center gap-2 py-6 text-muted-foreground">
+                  {busy && <><Loader2 className="size-5 animate-spin" /> Preparing your download…</>}
+                </div>
+                {error && (
+                  <div className="space-y-3">
+                    <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>
+                    {error.includes("Google") && (
+                      <Button className="w-full font-semibold" onClick={googleSignIn} disabled={busy}>
+                        Sign in with Google
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : needsGoogle ? (
+              /* PROTECTED FREE PRODUCT — Google sign-in only */
+              <>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This free download is protected — sign in with your Google account to unlock it. One download per account.
+                </p>
+                {error && <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>}
+                <Button className="mt-5 w-full gap-2 font-semibold" onClick={googleSignIn} disabled={busy}>
+                  {busy ? <Loader2 className="size-4 animate-spin" /> : <>Sign in with Google &amp; Download</>}
+                </Button>
+                <button type="button" onClick={onClose} className="mt-2 w-full py-1 text-center text-xs text-muted-foreground hover:text-foreground">
+                  Cancel
+                </button>
+              </>
+            ) : (
+              /* OPEN FREE PRODUCT — details optional */
+              <>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Your download is ready! Leave your name &amp; email to get updates on new free resources — or skip straight to the download.
+                </p>
+                <form onSubmit={claim} className="mt-5 space-y-3">
+                  <input
+                    className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+                    placeholder="Your name (optional)" value={name} onChange={e => setName(e.target.value)}
+                  />
+                  <input
+                    type="email"
+                    className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+                    placeholder="Your email (optional)" value={email} onChange={e => setEmail(e.target.value)}
+                  />
+                  {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>}
+                  <Button type="submit" className="w-full font-semibold" disabled={busy}>
+                    {busy ? <Loader2 className="size-4 animate-spin" /> : <>Get Free Download <Download className="ml-1.5 size-4" /></>}
+                  </Button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => claim(undefined, true)}
+                    className="w-full py-1 text-center text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    Skip &amp; download without details
+                  </button>
+                </form>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col items-center py-2 text-center">
+              <span className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10">
+                <CheckCircle2 className="size-8 text-emerald-500" />
+              </span>
+              <h2 className="mt-3 font-heading text-xl font-bold">
+                {result.alreadyClaimed ? "Welcome back!" : "It's yours! 🎉"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {result.alreadyClaimed
+                  ? "You've claimed this before — here are your downloads again."
+                  : "Your order is recorded. Download your files below."}
+              </p>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {result.files.map(f => (
+                <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer" download
+                  className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 transition-colors hover:border-primary">
+                  <Download className="size-4 shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{f.title}</span>
+                  <span className="shrink-0 rounded-md border bg-card px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">{f.type}</span>
+                </a>
+              ))}
+              {result.externalUrl && (
+                <a href={result.externalUrl} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 transition-colors hover:border-primary">
+                  <ExternalLink className="size-4 shrink-0 text-primary" />
+                  <span className="flex-1 text-sm font-medium">Open App</span>
+                </a>
+              )}
+              {result.files.length === 0 && !result.externalUrl && (
+                <p className="rounded-lg bg-muted/40 px-3 py-2.5 text-center text-xs text-muted-foreground">
+                  No files attached yet — the seller will add them soon.
+                </p>
+              )}
+            </div>
+
+            {signedIn && (
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Also saved to <Link href="/dashboard/downloads" className="font-medium text-primary hover:underline">My Library</Link> for anytime access.
+              </p>
+            )}
+            <Button variant="outline" className="mt-4 w-full" onClick={onClose}>Done</Button>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -394,6 +617,14 @@ function OverviewTab({ product }: { product: Product }) {
         </div>
       ) : null}
 
+      <WhatsIncluded product={product} />
+
+      <TutorialsList product={product} />
+
+      <ContentLists product={product} />
+
+      <ResourceLinks product={product} />
+
       {product.tags?.length > 0 && (
         <div>
           <p className="mb-2.5 text-sm font-semibold">Tags</p>
@@ -406,6 +637,139 @@ function OverviewTab({ product }: { product: Product }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── What's Included (bundle contents from Downloads tab) ────────────────────
+const fileIconMap: Record<string, typeof FileText> = {
+  PDF: FileText, ZIP: FileArchive, RAR: FileArchive,
+  Excel: FileSpreadsheet, CSV: FileSpreadsheet,
+  Code: FileCode2, Audio: Music, "Video File": Film,
+  Image: ImageIcon, "Image Pack": ImageIcon,
+  "Video URL": Video, "External Link": Link2, "Website Link": Globe,
+  "Prompt Pack": MessageSquare, Workflow: Layers, Template: Layers,
+  Checklist: ListChecks, Certificate: Star, Bonus: Sparkles,
+};
+
+function WhatsIncluded({ product }: { product: Product }) {
+  const files = product.downloads ?? [];
+  if (files.length === 0) return null;
+  return (
+    <div>
+      <h3 className="mb-3 font-heading text-lg font-bold">What&apos;s Included</h3>
+      <div className="space-y-2 rounded-xl border bg-muted/30 p-3">
+        {files.map(f => {
+          const Icon = fileIconMap[f.type] ?? FileText;
+          return (
+            <div key={f.id} className="flex items-start gap-3 rounded-lg bg-card p-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="size-4.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-tight">{f.title || f.type}</p>
+                {f.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>}
+              </div>
+              <span className="shrink-0 rounded-md border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+                {f.type}
+              </span>
+            </div>
+          );
+        })}
+        <p className="flex items-center gap-1.5 px-1 pt-1 text-xs text-muted-foreground">
+          <Lock className="size-3" /> Files unlock instantly after purchase{product.pricingType === "free" ? " (free)" : ""}.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tutorials (from Tutorials tab; free previews playable) ──────────────────
+function TutorialsList({ product }: { product: Product }) {
+  const tuts = product.tutorials ?? [];
+  if (tuts.length === 0) return null;
+  return (
+    <div>
+      <h3 className="mb-3 font-heading text-lg font-bold">Tutorials &amp; Lessons</h3>
+      <div className="space-y-2">
+        {tuts.map((t, i) => (
+          <div key={t.id} className="flex items-center gap-3 rounded-xl border bg-card p-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              {i + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold leading-tight">{t.title}</p>
+              {t.duration && <p className="mt-0.5 text-xs text-muted-foreground">{t.duration}</p>}
+            </div>
+            {t.free && t.videoUrl ? (
+              <a href={t.videoUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-primary/40 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground">
+                <Play className="size-3" /> Preview
+              </a>
+            ) : (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                <Lock className="size-3" /> Locked
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Content lists (Features / Benefits / Requirements / Audience) ───────────
+function splitLines(v?: string): string[] {
+  return (v ?? "").split("\n").map(s => s.trim()).filter(Boolean);
+}
+
+function ContentLists({ product }: { product: Product }) {
+  const sections = [
+    { title: "Key Features", items: splitLines(product.features), icon: CheckCircle2 },
+    { title: "What You'll Gain", items: splitLines(product.benefits), icon: Sparkles },
+    { title: "Requirements", items: splitLines(product.requirements), icon: ListChecks },
+    { title: "Who Is This For", items: splitLines(product.audience), icon: Users2 },
+  ].filter(s => s.items.length > 0);
+  if (sections.length === 0) return null;
+  return (
+    <div className="grid gap-5 sm:grid-cols-2">
+      {sections.map(({ title, items, icon: Icon }) => (
+        <div key={title} className="rounded-xl border bg-card p-4">
+          <h3 className="mb-2.5 font-heading text-sm font-bold">{title}</h3>
+          <ul className="space-y-1.5">
+            {items.map(item => (
+              <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <Icon className="mt-0.5 size-3.5 shrink-0 text-primary/70" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Resources (docs / website / community / support) ────────────────────────
+function ResourceLinks({ product }: { product: Product }) {
+  const links = [
+    { url: product.docUrl, label: "Documentation", icon: BookOpen },
+    { url: product.websiteUrl, label: "Official Website", icon: Globe },
+    { url: product.communityUrl, label: "Community", icon: MessageSquare },
+    { url: product.supportEmail ? `mailto:${product.supportEmail}` : "", label: "Support", icon: Mail },
+  ].filter(l => l.url);
+  if (links.length === 0) return null;
+  return (
+    <div>
+      <h3 className="mb-2.5 font-heading text-sm font-bold">Resources</h3>
+      <div className="flex flex-wrap gap-2">
+        {links.map(({ url, label, icon: Icon }) => (
+          <a key={label} href={url} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/40 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
+            <Icon className="size-3.5" /> {label}
+          </a>
+        ))}
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { notifyAuthChanged } from "@/hooks/use-auth";
 
 export function SignUpForm() {
   const router = useRouter();
@@ -37,6 +38,7 @@ export function SignUpForm() {
       await updateProfile(user, { displayName: name });
       const idToken = await user.getIdToken();
       await createSession(idToken);
+      notifyAuthChanged();
       router.push("/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sign up failed";
@@ -46,19 +48,55 @@ export function SignUpForm() {
     }
   }
 
+  // Completes Google sign-up when returning from a full-page redirect
+  // (fallback used when the browser blocks the popup).
+  React.useEffect(() => {
+    (async () => {
+      const { getRedirectResult } = await import("firebase/auth");
+      const { auth } = await import("@/lib/firebase/client");
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          setLoading(true);
+          const idToken = await result.user.getIdToken();
+          await createSession(idToken);
+          notifyAuthChanged();
+          router.refresh();
+          router.push("/");
+        }
+      } catch {
+        // No redirect pending — nothing to do.
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleGoogle() {
     setError("");
     setLoading(true);
     try {
-      const { signInWithPopup, GoogleAuthProvider } = await import("firebase/auth");
+      const { signInWithPopup, signInWithRedirect, GoogleAuthProvider } = await import("firebase/auth");
       const { auth } = await import("@/lib/firebase/client");
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+      let result;
+      try {
+        result = await signInWithPopup(auth, provider);
+      } catch (popupErr: unknown) {
+        const code = popupErr instanceof Error ? popupErr.message : "";
+        if (code.includes("popup-blocked") || code.includes("popup-closed") || code.includes("cancelled-popup-request")) {
+          // Browser blocked the popup — use a full-page redirect instead.
+          await signInWithRedirect(auth, provider);
+          return; // page navigates away; sign-up completes via getRedirectResult above
+        }
+        throw popupErr;
+      }
       const idToken = await result.user.getIdToken();
       await createSession(idToken);
+      notifyAuthChanged();
       router.push("/");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Google sign-in failed");
-    } finally {
+      const msg = err instanceof Error ? err.message : "Google sign-in failed";
+      setError(msg.includes("popup") ? "Sign-in window was blocked. Please allow popups for this site, or try again." : msg);
       setLoading(false);
     }
   }

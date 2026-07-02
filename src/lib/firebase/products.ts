@@ -64,6 +64,7 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     status: data.status ?? "published",
     launchType: data.launchType,
     externalUrl,
+    access: data.access ?? "public",
     gradient: data.gradient,
     // Experience features from editor
     pvEnabled: data.pvEnabled ?? false,
@@ -77,6 +78,32 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     demoMode: data.demoMode ?? "tab",
     extDemoEnabled: data.extDemoEnabled ?? false,
     extDemoUrl: data.extDemoUrl ?? "",
+    // Bundle contents — file URLs stripped: delivery happens post-purchase only
+    downloads: Array.isArray(data.downloads)
+      ? data.downloads.map((d: Record<string, unknown>) => ({
+          id: d.id, type: d.type ?? "Other", title: d.title ?? "",
+          description: d.description ?? "", version: d.version ?? "", order: d.order ?? 0,
+        }))
+      : [],
+    // Tutorials — video URL only exposed for Free Preview items
+    tutorials: Array.isArray(data.tutorials)
+      ? data.tutorials.map((t: Record<string, unknown>) => ({
+          id: t.id, title: t.title ?? "", duration: t.duration ?? "",
+          description: t.description ?? "", free: t.free ?? false, order: t.order ?? 0,
+          ...(t.free ? { videoUrl: t.videoUrl ?? "" } : {}),
+        }))
+      : [],
+    updates: Array.isArray(data.updates) ? data.updates : [],
+    features: data.features ?? "",
+    benefits: data.benefits ?? "",
+    requirements: data.requirements ?? "",
+    audience: data.audience ?? "",
+    included: data.included ?? "",
+    docUrl: data.docUrl ?? "",
+    githubUrl: data.githubUrl ?? "",
+    websiteUrl: data.websiteUrl ?? "",
+    communityUrl: data.communityUrl ?? "",
+    supportEmail: data.supportEmail ?? "",
     createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
     updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
   } as Product;
@@ -242,6 +269,34 @@ export async function getPublishedProducts(
   }
 
   return results.slice(0, pageSize);
+}
+
+/**
+ * Homepage data in a single products query.
+ * One catalog scan replaces six separate flag-filtered queries.
+ */
+export async function getHomeProducts(perSection = 8) {
+  const snap = await adminDb
+    .collection(PRODUCTS_COL)
+    .where("status", "in", ["published", "coming_soon"])
+    .limit(300)
+    .get();
+  const all = snap.docs.map((d) => docToProduct(d.id, d.data()));
+  const published = all.filter((p) => p.status === "published");
+
+  const bySales = (a: Product, b: Product) => (b.salesCount ?? 0) - (a.salesCount ?? 0);
+  const time = (x: Product) =>
+    typeof x.createdAt === "string" ? Date.parse(x.createdAt as string) || 0
+    : x.createdAt instanceof Date ? x.createdAt.getTime() : 0;
+
+  return {
+    featured: published.filter((p) => p.featured).slice(0, perSection),
+    trending: published.filter((p) => p.trending).sort(bySales).slice(0, perSection),
+    freeThisWeek: published.filter((p) => p.freeThisWeek).slice(0, perSection),
+    topSellers: published.filter((p) => p.bestSeller).sort(bySales).slice(0, perSection),
+    recent: [...all].sort((a, b) => time(b) - time(a)).slice(0, perSection),
+    prompts: all.filter((p) => p.category === "prompts").slice(0, perSection),
+  };
 }
 
 export async function getProductReviews(productId: string) {
