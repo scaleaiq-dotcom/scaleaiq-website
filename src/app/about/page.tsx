@@ -84,9 +84,9 @@ export default function AboutPage() {
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90">
             Browse Products <ArrowRight className="size-4" />
           </Link>
-          <Link href="/pricing"
+          <Link href="/explore?price=free"
             className="inline-flex items-center gap-2 rounded-xl border px-8 py-3 text-sm font-bold transition-colors hover:border-primary hover:text-primary">
-            View Pricing
+            Try Free Resources
           </Link>
         </div>
       </section>

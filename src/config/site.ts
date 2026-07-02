@@ -25,7 +25,6 @@ export const siteConfig = {
     { title: "Prompts", href: "/category/prompts" },
     { title: "eBooks", href: "/category/ebooks" },
     { title: "Workshops", href: "/workshops" },
-    { title: "Pricing", href: "/pricing" },
     { title: "Blog", href: "/blog" },
   ],
 
@@ -42,7 +41,6 @@ export const siteConfig = {
     { title: "Automation", href: "/category/automation", icon: "Zap" },
     { title: "Free Resources", href: "/explore?price=free", icon: "Gift" },
     { title: "Workshops", href: "/workshops", icon: "Zap" },
-    { title: "Pricing", href: "/pricing", icon: "TrendingUp" },
     { title: "FAQ", href: "/faq", icon: "MessageSquareText" },
     { title: "Blog", href: "/blog", icon: "Newspaper" },
   ],
@@ -53,7 +51,6 @@ export const siteConfig = {
       { title: "About Us", href: "/about" },
       { title: "All Products", href: "/explore" },
       { title: "Workshops", href: "/workshops" },
-      { title: "Pricing", href: "/pricing" },
       { title: "FAQ", href: "/faq" },
       { title: "Blog", href: "/blog" },
       { title: "Contact Us", href: "/contact" },
