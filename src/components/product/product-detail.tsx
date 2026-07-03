@@ -19,6 +19,7 @@ import { RatingStars } from "@/components/common/rating-stars";
 import { useCart } from "@/store/cart";
 import { useAuth, notifyAuthChanged } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { EbookReader } from "@/components/ebook/ebook-reader";
 
 // ─── Tabs ────────────────────────────────────────────────────────────────────
 const TABS = [
@@ -592,6 +593,34 @@ function PurchaseCard({ product, isFree, isComingSoon, onAddToCart, onGetFree, o
 // OVERVIEW TAB
 // ─────────────────────────────────────────────────────────────────────────────
 function OverviewTab({ product }: { product: Product }) {
+  const [reader, setReader] = React.useState<{ url: string; label: string } | null>(null);
+  const [readerBusy, setReaderBusy] = React.useState(false);
+  const [readerMsg, setReaderMsg] = React.useState("");
+  const isFree = product.price === 0 || product.pricingType === "free";
+
+  // Open the full book if the buyer owns it (or it's free); otherwise nudge to buy.
+  async function openFullBook() {
+    setReaderMsg("");
+    setReaderBusy(true);
+    try {
+      const res = await fetch(`/api/ebook-url?productId=${product.id}`);
+      if (res.ok) {
+        const d = await res.json();
+        setReader({ url: d.url, label: "Full book" });
+      } else if (res.status === 401) {
+        setReaderMsg("Please sign in to read this book.");
+      } else if (res.status === 403) {
+        setReaderMsg("Purchase this book to read the full version.");
+      } else {
+        setReaderMsg("Could not open the book. Please try again.");
+      }
+    } catch {
+      setReaderMsg("Could not open the book. Please try again.");
+    } finally {
+      setReaderBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -617,6 +646,39 @@ function OverviewTab({ product }: { product: Product }) {
           </div>
         ))}
       </div>
+
+      {/* eBook reader */}
+      {product.epubEnabled && (product.previewEpubUrl || product.hasEpub) && (
+        <div className="rounded-xl border bg-gradient-to-br from-emerald-500/5 to-primary/5 p-4">
+          <div className="flex items-center gap-2">
+            <BookOpen className="size-4 text-emerald-600" />
+            <p className="text-sm font-semibold">Read this ebook</p>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            A built-in reader with search, chapters, adjustable text, and night mode — no download needed.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {product.previewEpubUrl && (
+              <button onClick={() => setReader({ url: product.previewEpubUrl!, label: "Free sample" })}
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-2 text-xs font-semibold transition-colors hover:border-primary hover:text-primary">
+                <BookOpen className="size-3.5" /> Read free sample
+              </button>
+            )}
+            {product.hasEpub && (
+              <button onClick={openFullBook} disabled={readerBusy}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60">
+                {readerBusy ? <Loader2 className="size-3.5 animate-spin" /> : <BookOpen className="size-3.5" />}
+                {isFree ? "Read the book" : "Read the full book"}
+              </button>
+            )}
+          </div>
+          {readerMsg && <p className="mt-2 text-xs text-amber-600">{readerMsg}</p>}
+        </div>
+      )}
+
+      {reader && (
+        <EbookReader url={reader.url} title={product.title} label={reader.label} onClose={() => setReader(null)} />
+      )}
 
       {/* Experience feature buttons */}
       {(product.pvEnabled && product.pvUrl) || (product.pdfEnabled && product.pdfUrl) || (product.sampleEnabled && product.sampleUrl) || (product.demoEnabled && product.demoUrl) || (product.extDemoEnabled && product.extDemoUrl) ? (

@@ -132,6 +132,12 @@ export interface Product {
   extDemoEnabled?: boolean;
   extDemoUrl?: string;
 
+  // eBook reader (EPUB). previewEpubUrl is public (free sample); the full
+  // book URL is delivered only to owners via /api/ebook-url.
+  epubEnabled?: boolean;
+  previewEpubUrl?: string;
+  hasEpub?: boolean;
+
   // Bundle contents & learning material (from editor tabs — sanitized for public display)
   downloads?: ProductFile[];
   tutorials?: ProductTutorial[];

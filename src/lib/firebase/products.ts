@@ -80,6 +80,11 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     demoMode: data.demoMode ?? "tab",
     extDemoEnabled: data.extDemoEnabled ?? false,
     extDemoUrl: data.extDemoUrl ?? "",
+    // eBook: preview EPUB is public; the full book URL is never exposed here —
+    // only a boolean, so buyers get it through /api/ebook-url after purchase.
+    epubEnabled: data.epubEnabled ?? false,
+    previewEpubUrl: data.previewEpubUrl ?? "",
+    hasEpub: !!data.epubUrl,
     // Bundle contents — file URLs stripped: delivery happens post-purchase only
     downloads: Array.isArray(data.downloads)
       ? data.downloads.map((d: Record<string, unknown>) => ({

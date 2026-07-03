@@ -72,6 +72,7 @@ interface FS {
   demoEnabled: boolean; demoUrl: string; demoMode: string;
   baEnabled: boolean; beforeImg: string; afterImg: string;
   extDemoEnabled: boolean; extDemoUrl: string;
+  epubEnabled: boolean; epubUrl: string; previewEpubUrl: string;
   features: string; benefits: string; requirements: string; audience: string; included: string;
   tutorials: Tutorial[]; downloads: DLItem[];
   docUrl: string; githubUrl: string; websiteUrl: string; communityUrl: string; supportEmail: string;
@@ -92,6 +93,7 @@ const DEF: FS = {
   demoEnabled: false, demoUrl: "", demoMode: "modal",
   baEnabled: false, beforeImg: "", afterImg: "",
   extDemoEnabled: false, extDemoUrl: "",
+  epubEnabled: false, epubUrl: "", previewEpubUrl: "",
   features: "", benefits: "", requirements: "", audience: "", included: "",
   tutorials: [], downloads: [],
   docUrl: "", githubUrl: "", websiteUrl: "", communityUrl: "", supportEmail: "",
@@ -199,6 +201,9 @@ export function ProductEditor({ productId }: { productId?: string }) {
           afterImg: product.afterImg ?? "",
           extDemoEnabled: product.extDemoEnabled ?? false,
           extDemoUrl: product.extDemoUrl ?? "",
+          epubEnabled: product.epubEnabled ?? false,
+          epubUrl: product.epubUrl ?? "",
+          previewEpubUrl: product.previewEpubUrl ?? "",
           features: product.features ?? "",
           benefits: product.benefits ?? "",
           requirements: product.requirements ?? "",
@@ -318,17 +323,18 @@ export function ProductEditor({ productId }: { productId?: string }) {
     }
   }
 
-  // Upload any file (PDF, ZIP, audio…) for Experience fields — no image compression.
+  // Upload any file (PDF, ZIP, audio, EPUB…) for Experience fields — no image compression.
   async function uploadExpFile(file: File, field: keyof FS) {
     setUploadError("");
-    if (file.size > 20 * 1024 * 1024) {
-      setUploadError("File is larger than 20 MB — keep preview/sample files small.");
+    if (file.size > 30 * 1024 * 1024) {
+      setUploadError("File is larger than 30 MB. For big ebooks, host on Google Drive/R2 and paste the URL instead.");
       return;
     }
     setUploading(field);
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `products/${productId ?? "new"}/experience/${Date.now()}-${safeName}`;
+      const folder = field === "epubUrl" || field === "previewEpubUrl" ? "ebook" : "experience";
+      const path = `products/${productId ?? "new"}/${folder}/${Date.now()}-${safeName}`;
       const r = storageRef(storage, path);
       await uploadBytes(r, file);
       upd(field, (await getDownloadURL(r)) as never);
@@ -718,6 +724,39 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 extra: form.extDemoEnabled && (
                   <div className="mt-3">
                     <Input value={form.extDemoUrl} onChange={e => upd("extDemoUrl", e.target.value)} placeholder="https://demo.example.com" />
+                  </div>
+                ),
+              },
+              {
+                on: form.epubEnabled, set: (v: boolean) => upd("epubEnabled", v),
+                Icon: BookOpen, color: "text-emerald-500", label: "Read on-site (eBook / EPUB)",
+                extra: form.epubEnabled && (
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <p className="mb-1 text-xs font-medium">Free sample EPUB <span className="text-muted-foreground">— first chapter, anyone can read</span></p>
+                      <div className="flex gap-2">
+                        <Input value={form.previewEpubUrl} onChange={e => upd("previewEpubUrl", e.target.value)} placeholder="Preview EPUB URL — paste or upload →" />
+                        <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-accent">
+                          {uploading === "previewEpubUrl" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                          Upload
+                          <input type="file" accept=".epub,application/epub+zip" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpFile(f, "previewEpubUrl"); e.target.value = ""; }} />
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-xs font-medium">Full book EPUB <span className="text-muted-foreground">— unlocked after purchase</span></p>
+                      <div className="flex gap-2">
+                        <Input value={form.epubUrl} onChange={e => upd("epubUrl", e.target.value)} placeholder="Full EPUB URL — paste or upload →" />
+                        <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-accent">
+                          {uploading === "epubUrl" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                          Upload
+                          <input type="file" accept=".epub,application/epub+zip" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpFile(f, "epubUrl"); e.target.value = ""; }} />
+                        </label>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">The full book never appears in the public page — buyers read it in the on-site reader after purchase. Files over 30&nbsp;MB: host on Google Drive/R2 and paste the link.</p>
                   </div>
                 ),
               },
