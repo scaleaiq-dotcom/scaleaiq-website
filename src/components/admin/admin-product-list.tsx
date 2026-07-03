@@ -133,8 +133,8 @@ export function AdminProductList() {
 
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>}
 
-      <div className="overflow-hidden rounded-xl border bg-card">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-xl border bg-card">
+        <table className="w-full min-w-[640px]">
           <thead>
             <tr className="border-b bg-muted/40">
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Product</th>

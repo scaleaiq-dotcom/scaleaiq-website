@@ -1060,10 +1060,6 @@ function ShareTab({ product }: { product: Product }) {
           ))}
         </div>
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        Earn rewards for every friend you refer. <Link href="/refer" className="font-medium text-primary hover:underline">Learn about our referral program →</Link>
-      </p>
     </div>
   );
 }

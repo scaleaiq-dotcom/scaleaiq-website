@@ -438,17 +438,19 @@ export function ProductEditor({ productId }: { productId?: string }) {
       )}
 
       {/* Toolbar */}
-      <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold">{form.title || "New Product"}</p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{form.title || "New Product"}</p>
           <p className="text-xs capitalize text-muted-foreground">
             {productId ? "Editing" : "Creating"} • {form.status}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {form.slug && (
-            <a href={`/product/${form.slug}`} target="_blank"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <div className="flex flex-1 items-center justify-end gap-2">
+          {/* Preview only works once the product is saved — an unsaved product
+              isn't in the database yet, so the live page would 404. */}
+          {productId && form.slug && (
+            <a href={`/product/${form.slug}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
               <Eye className="size-3.5" />Preview
             </a>
           )}

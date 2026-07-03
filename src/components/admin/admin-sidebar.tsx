@@ -23,13 +23,13 @@ const nav = [
   { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { label: "Subscriptions", href: "/admin/subscriptions", icon: CreditCard },
   { label: "Coupons", href: "/admin/coupons", icon: Tag },
-  { label: "Reviews", href: "/admin/reviews", icon: Star, badge: "3" },
+  { label: "Reviews", href: "/admin/reviews", icon: Star },
   { label: "Notifications", href: "/admin/notifications", icon: Bell },
   { label: "Workshops", href: "/admin/workshops", icon: CalendarCheck },
   { label: "Blog", href: "/admin/blog", icon: FileText },
   { label: "FAQ", href: "/admin/faq", icon: HelpCircle },
   { label: "File Manager", href: "/admin/file-manager", icon: HardDrive },
-  { label: "Support", href: "/admin/support", icon: Headphones, badge: "5" },
+  { label: "Support", href: "/admin/support", icon: Headphones },
   { label: "Reports", href: "/admin/reports", icon: BarChart3 },
   { label: "Settings", href: "/admin/settings", icon: Settings },
   { label: "Roles & Permissions", href: "/admin/roles", icon: ShieldCheck },
@@ -101,9 +101,6 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             <Link key={item.href} href={item.href} onClick={onClose} className={cn("flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors", isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
               <Icon className="size-4 shrink-0" />
               <span className="flex-1">{item.label}</span>
-              {"badge" in item && item.badge && (
-                <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">{item.badge}</span>
-              )}
             </Link>
           );
         })}

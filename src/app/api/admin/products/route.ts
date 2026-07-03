@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { adminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/admin-auth";
 import { FieldValue } from "firebase-admin/firestore";
@@ -23,6 +24,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const ref = adminDb.collection("products").doc();
     await ref.set({ ...body, id: ref.id, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+    // Surface the new product on the site immediately
+    revalidatePath("/");
+    revalidatePath("/explore");
+    if (body.slug) revalidatePath(`/product/${body.slug}`);
+    if (body.category) revalidatePath(`/category/${body.category}`);
     return NextResponse.json({ id: ref.id });
   } catch (err) {
     console.error("Product create error:", err);

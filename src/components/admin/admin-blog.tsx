@@ -90,8 +90,8 @@ export function AdminBlog() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border bg-card">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-xl border bg-card">
+        <table className="w-full min-w-[640px]">
           <thead>
             <tr className="border-b bg-muted/40">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Title</th>

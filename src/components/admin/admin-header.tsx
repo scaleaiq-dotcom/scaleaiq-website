@@ -3,8 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Bell, ExternalLink, Moon, Sun, Search, ChevronDown, LogOut, User, LayoutDashboard } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useAuth, notifyAuthChanged } from "@/hooks/use-auth";
 import { ShareMenu } from "@/components/admin/share-menu";
 
@@ -35,16 +35,17 @@ export function AdminHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const [dark, setDark] = React.useState(false);
+  const { setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
   const [dropOpen, setDropOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
   const title = titles[pathname] ?? (pathname.includes("/products/") ? "Edit Product" : "Admin");
   const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
-  React.useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
+  // Avoid hydration mismatch: only resolve the theme icon after mount.
+  React.useEffect(() => setMounted(true), []);
+  const dark = mounted && resolvedTheme === "dark";
 
   async function handleSignOut() {
     await fetch("/api/auth/session", { method: "DELETE" });
@@ -82,14 +83,13 @@ export function AdminHeader() {
           <ExternalLink className="size-4" />
         </Link>
 
-        <button onClick={() => setDark(d => !d)} className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+        <button onClick={() => setTheme(dark ? "light" : "dark")} aria-label="Toggle theme" className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
           {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </button>
 
-        <button className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+        <Link href="/admin/notifications" className="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
           <Bell className="size-4" />
-          <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-rose-500" />
-        </button>
+        </Link>
 
         {/* User dropdown */}
         <div className="relative">
@@ -102,7 +102,7 @@ export function AdminHeader() {
             </div>
             <div className="hidden sm:flex flex-col items-start leading-none">
               <span className="text-xs font-semibold">{user?.displayName ?? "Admin"}</span>
-              <span className="text-[10px] text-muted-foreground">Super Admin</span>
+              <span className="text-[10px] text-muted-foreground">Administrator</span>
             </div>
             <ChevronDown className="size-3.5 text-muted-foreground" />
           </button>

@@ -94,7 +94,7 @@ export function AdminCoupons() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="overflow-x-auto rounded-xl border bg-card">
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
         ) : coupons.length === 0 ? (
@@ -106,7 +106,7 @@ export function AdminCoupons() {
             </button>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b bg-muted/40">
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Code</th>
