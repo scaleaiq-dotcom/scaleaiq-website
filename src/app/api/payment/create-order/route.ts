@@ -1,5 +1,6 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { verifySessionCached } from "@/lib/admin-auth";
+import { computeCheckoutTotal } from "@/lib/pricing";
 import Razorpay from "razorpay";
 
 const razorpay = new Razorpay({
@@ -15,14 +16,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { amount, currency = "INR", receipt } = await request.json();
+    const { items, couponCode, currency = "INR", receipt } = await request.json();
 
-    if (!amount || amount <= 0) {
+    // Recompute the amount from real product prices — never trust the client's
+    // number. This is the amount Razorpay will actually enforce for the order.
+    const { total } = await computeCheckoutTotal(items ?? [], couponCode ?? null);
+
+    if (total <= 0) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100), // paise
+      amount: Math.round(total * 100), // paise
       currency,
       receipt: receipt ?? `order_${Date.now()}`,
     });
@@ -37,4 +42,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create payment order" }, { status: 500 });
   }
 }
-

@@ -5,6 +5,7 @@ import { verifySessionCached } from "@/lib/admin-auth";
 import { FieldValue } from "firebase-admin/firestore";
 import { sendEmail, orderReceiptHtml, type ReceiptFile } from "@/lib/email";
 import { incrementCouponUsage } from "@/lib/coupons";
+import { computeCheckoutTotal } from "@/lib/pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,9 +21,8 @@ export async function POST(request: NextRequest) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      items,
+      items: rawItems,
       couponCode,
-      total,
       billingName,
       billingEmail,
     } = await request.json();
@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Payment verification failed" }, { status: 400 });
     }
 
+    // Recompute prices, discount, and total from Firestore — the stored order
+    // reflects real product prices, not whatever the browser claimed.
+    const computed = await computeCheckoutTotal(rawItems ?? [], couponCode ?? null);
+    const items = computed.items;
+    const total = computed.total;
+
     // Create a clean, readable order ID: SAIQ-YYYYMMDD-XXXX
     const now = new Date();
     const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
@@ -48,10 +54,7 @@ export async function POST(request: NextRequest) {
       userEmail: email,
       billingName: billingName ?? decoded.name ?? "",
       billingEmail: billingEmail ?? email,
-      items: items.map((item: {
-        id: string; slug: string; title: string;
-        price: number; pricingType: string; category: string; thumbnailUrl?: string;
-      }) => ({
+      items: items.map((item) => ({
         productId: item.id,
         slug: item.slug,
         title: item.title,
@@ -60,8 +63,9 @@ export async function POST(request: NextRequest) {
         category: item.category,
         thumbnail: item.thumbnailUrl ?? null,
       })),
-      couponCode: couponCode ?? null,
-      subtotal: items.reduce((s: number, i: { price: number }) => s + i.price, 0),
+      couponCode: computed.couponApplied,
+      subtotal: computed.subtotal,
+      discount: computed.discount,
       total,
       currency: "INR",
       status: "completed",
@@ -105,8 +109,8 @@ export async function POST(request: NextRequest) {
     }
     await batch.commit();
 
-    // Count the coupon toward its usage limit (fail-soft)
-    await incrementCouponUsage(couponCode);
+    // Count the coupon toward its usage limit (only if it actually applied)
+    await incrementCouponUsage(computed.couponApplied);
 
     // Receipt email with download links (fire-and-forget)
     (async () => {

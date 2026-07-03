@@ -160,14 +160,15 @@ export function CheckoutClient() {
         return;
       }
 
-      // Paid items: create Razorpay order first
+      // Paid items: create Razorpay order first. The server recomputes the
+      // amount from real product prices + coupon, so we send item IDs, not a total.
       const orderRes = await fetch("/api/payment/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: total }),
+        body: JSON.stringify({ items, couponCode: couponApplied ? coupon : null }),
       });
       if (!orderRes.ok) throw new Error("Failed to create payment");
-      const { orderId: rzpOrderId } = await orderRes.json();
+      const { orderId: rzpOrderId, amount: rzpAmount } = await orderRes.json();
 
       // Load Razorpay checkout script
       await loadRazorpayScript();
@@ -177,7 +178,7 @@ export function CheckoutClient() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rzp = new (window as any).Razorpay({
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-          amount: total * 100,
+          amount: rzpAmount,
           currency: "INR",
           name: "ScaleAIQ",
           description: items.length === 1 ? items[0].title : `${items.length} products`,

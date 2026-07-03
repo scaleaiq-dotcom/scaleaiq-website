@@ -2,6 +2,7 @@
 import { getAdminAuth, adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { incrementCouponUsage } from "@/lib/coupons";
+import { computeCheckoutTotal } from "@/lib/pricing";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,14 +17,21 @@ export async function POST(request: NextRequest) {
     const email = decoded.email ?? "";
 
     const body = await request.json();
-    const { items, couponCode, total, billingName, billingEmail } = body;
+    const { items: rawItems, couponCode, billingName, billingEmail } = body;
 
-    if (!items || items.length === 0) {
+    if (!rawItems || rawItems.length === 0) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
-    // Determine if all items are free
-    const allFree = items.every((i: { price: number }) => i.price === 0);
+    // Recompute from Firestore. This endpoint is the free path only — if the
+    // real total isn't ₹0, reject and make the buyer go through payment.
+    const computed = await computeCheckoutTotal(rawItems, couponCode ?? null);
+    const items = computed.items;
+    const total = computed.total;
+    if (total > 0) {
+      return NextResponse.json({ error: "These items require payment." }, { status: 400 });
+    }
+    const allFree = true;
 
     // Create a clean, readable order ID: SAIQ-YYYYMMDD-XXXX
     const now = new Date();
@@ -36,10 +44,7 @@ export async function POST(request: NextRequest) {
       userEmail: email,
       billingName: billingName ?? decoded.name ?? "",
       billingEmail: billingEmail ?? email,
-      items: items.map((item: {
-        id: string; slug: string; title: string;
-        price: number; pricingType: string; category: string;
-      }) => ({
+      items: items.map((item) => ({
         productId: item.id,
         slug: item.slug,
         title: item.title,
@@ -47,12 +52,12 @@ export async function POST(request: NextRequest) {
         pricingType: item.pricingType,
         category: item.category,
       })),
-      couponCode: couponCode ?? null,
-      subtotal: items.reduce((s: number, i: { price: number }) => s + i.price, 0),
-      total: total ?? 0,
+      couponCode: computed.couponApplied,
+      subtotal: computed.subtotal,
+      total,
       currency: "INR",
-      status: allFree ? "completed" : "pending",
-      paymentMethod: allFree ? "free" : "razorpay",
+      status: "completed",
+      paymentMethod: "free",
       paymentId: null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -83,8 +88,8 @@ export async function POST(request: NextRequest) {
       await batch.commit();
     }
 
-    // Count the coupon toward its usage limit (fail-soft)
-    await incrementCouponUsage(couponCode);
+    // Count the coupon toward its usage limit (only if it actually applied)
+    await incrementCouponUsage(computed.couponApplied);
 
     return NextResponse.json({ orderId, status: order.status });
   } catch (err) {
