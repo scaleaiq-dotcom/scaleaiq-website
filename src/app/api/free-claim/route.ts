@@ -10,7 +10,8 @@ import { sendEmail, orderReceiptHtml } from "@/lib/email";
  * - access === "login_required": a signed-in session is mandatory (protects big files);
  *   the claim email is taken from the account, not the form.
  * - One claim per email per product; re-claiming returns the same files.
- * - Records a ₹0 order (shows in admin Orders + the buyer's library).
+ * - Records a ₹0 order (shows in admin Orders). Free items download directly
+ *   to the buyer's device — they do NOT go to My Library (purchases only).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -79,22 +80,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Record the ₹0 order
+    // Record the ₹0 order, the claim, and the download count in parallel —
+    // sequential writes made the "Preparing your download" step slow on mobile.
     const orderRef = adminDb.collection("orders").doc();
-    await orderRef.set({
-      id: orderRef.id,
-      userId: session?.uid ?? null,
-      userEmail: email || "guest",
-      billingName: name || (email ? email.split("@")[0] : "Guest"),
-      items: [{ productId, title: product.title ?? "", price: 0 }],
-      total: 0,
-      status: "completed",
-      paymentMethod: "free",
-      createdAt: FieldValue.serverTimestamp(),
-    });
-
+    const writes: Promise<unknown>[] = [
+      orderRef.set({
+        id: orderRef.id,
+        userId: session?.uid ?? null,
+        userEmail: email || "guest",
+        billingName: name || (email ? email.split("@")[0] : "Guest"),
+        items: [{ productId, title: product.title ?? "", price: 0 }],
+        total: 0,
+        status: "completed",
+        paymentMethod: "free",
+        createdAt: FieldValue.serverTimestamp(),
+      }),
+      snap.ref.update({ downloadCount: FieldValue.increment(1) }).catch(() => {}),
+    ];
     if (claimRef) {
-      await claimRef.set({
+      writes.push(claimRef.set({
         productId,
         productTitle: product.title ?? "",
         email,
@@ -102,23 +106,9 @@ export async function POST(req: NextRequest) {
         userId: session?.uid ?? null,
         orderId: orderRef.id,
         createdAt: FieldValue.serverTimestamp(),
-      });
+      }));
     }
-
-    // Signed-in claims land in the user's library
-    if (session?.uid) {
-      await adminDb.collection("users").doc(session.uid)
-        .collection("library").doc(productId).set({
-          productId,
-          title: product.title ?? "",
-          orderId: orderRef.id,
-          acquiredAt: FieldValue.serverTimestamp(),
-          paymentMethod: "free",
-        });
-    }
-
-    // Track downloads on the product
-    await snap.ref.update({ downloadCount: FieldValue.increment(1) }).catch(() => {});
+    await Promise.all(writes);
 
     // Receipt email (fire-and-forget — never blocks the download)
     if (email) {

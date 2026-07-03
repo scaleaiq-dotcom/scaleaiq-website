@@ -3,9 +3,10 @@ import { adminDb } from "@/lib/firebase/admin";
 import { verifySessionCached } from "@/lib/admin-auth";
 
 /**
- * The signed-in user's library: everything they've claimed or purchased,
- * with live download links (files come from the product, so re-uploads
- * and new files added by the seller appear automatically).
+ * The signed-in user's library: PURCHASED products only, with live download
+ * links (files come from the product, so re-uploads and new files added by
+ * the seller appear automatically). Free claims download directly to the
+ * device and are excluded — including old entries written before this rule.
  */
 export async function GET(req: NextRequest) {
   const session = await verifySessionCached(req.cookies.get("session")?.value);
@@ -20,7 +21,9 @@ export async function GET(req: NextRequest) {
       .limit(100)
       .get();
 
-    const items = await Promise.all(libSnap.docs.map(async d => {
+    const paidDocs = libSnap.docs.filter(d => (d.data().paymentMethod ?? "purchase") !== "free");
+
+    const items = await Promise.all(paidDocs.map(async d => {
       const lib = d.data();
       const prodSnap = await adminDb.collection("products").doc(d.id).get();
       const p = prodSnap.exists ? prodSnap.data()! : {};

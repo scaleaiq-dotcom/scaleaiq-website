@@ -51,7 +51,7 @@ export default function DownloadsPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Everything you&apos;ve claimed or purchased — re-download anytime. New files added by the seller appear here automatically.
+        Everything you&apos;ve purchased — re-download anytime. New files added by the seller appear here automatically.
       </p>
 
       {error && (
@@ -62,7 +62,7 @@ export default function DownloadsPage() {
         <div className="rounded-xl border bg-card p-12 text-center">
           <Download className="mx-auto size-12 text-muted-foreground/40" />
           <p className="mt-3 font-heading text-lg font-semibold">Your library is empty</p>
-          <p className="mt-1 text-sm text-muted-foreground">Free claims and purchases will appear here</p>
+          <p className="mt-1 text-sm text-muted-foreground">Your purchases will appear here</p>
           <Link href="/explore" className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
             Explore Products
           </Link>

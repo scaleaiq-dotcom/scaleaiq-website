@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { notifyAuthChanged } from "@/hooks/use-auth";
 
 export function SignUpForm() {
-  const router = useRouter();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -39,7 +37,8 @@ export function SignUpForm() {
       const idToken = await user.getIdToken();
       await createSession(idToken);
       notifyAuthChanged();
-      router.push("/");
+      // Full-page navigation so the header/avatar picks up the new session
+      window.location.assign("/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sign up failed";
       setError(msg.includes("email-already-in-use") ? "This email is already registered." : msg);
@@ -61,8 +60,7 @@ export function SignUpForm() {
           const idToken = await result.user.getIdToken();
           await createSession(idToken);
           notifyAuthChanged();
-          router.refresh();
-          router.push("/");
+          window.location.assign("/");
         }
       } catch {
         // No redirect pending — nothing to do.
@@ -93,7 +91,8 @@ export function SignUpForm() {
       const idToken = await result.user.getIdToken();
       await createSession(idToken);
       notifyAuthChanged();
-      router.push("/");
+      // Full-page navigation so the header/avatar picks up the new session
+      window.location.assign("/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Google sign-in failed";
       setError(msg.includes("popup") ? "Sign-in window was blocked. Please allow popups for this site, or try again." : msg);

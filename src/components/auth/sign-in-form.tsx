@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,8 +9,6 @@ import { Input } from "@/components/ui/input";
 import { notifyAuthChanged } from "@/hooks/use-auth";
 
 export function SignInForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [show, setShow] = React.useState(false);
@@ -38,9 +35,9 @@ export function SignInForm() {
       await createSession(idToken);
       notifyAuthChanged();
       const params = new URLSearchParams(window.location.search);
-      const redirect = params.get("redirect") ?? "/";
-      router.refresh();
-      router.push(redirect);
+      // Full-page navigation: client-side push left the header/avatar stale
+      // on some devices until a manual refresh.
+      window.location.assign(params.get("redirect") ?? "/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sign in failed";
       setError(msg.includes("invalid-credential") ? "Invalid email or password." : msg);
@@ -63,8 +60,7 @@ export function SignInForm() {
           await createSession(idToken);
           notifyAuthChanged();
           const params = new URLSearchParams(window.location.search);
-          router.refresh();
-          router.push(params.get("redirect") ?? "/");
+          window.location.assign(params.get("redirect") ?? "/");
         }
       } catch {
         // No redirect pending — nothing to do.
@@ -96,9 +92,9 @@ export function SignInForm() {
       await createSession(idToken);
       notifyAuthChanged();
       const params = new URLSearchParams(window.location.search);
-      const redirect = params.get("redirect") ?? "/";
-      router.refresh();
-      router.push(redirect);
+      // Full-page navigation: client-side push left the header/avatar stale
+      // on some devices until a manual refresh.
+      window.location.assign(params.get("redirect") ?? "/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Google sign-in failed";
       setError(msg.includes("popup") ? "Sign-in window was blocked. Please allow popups for this site, or try again." : msg);

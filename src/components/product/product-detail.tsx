@@ -417,11 +417,9 @@ function FreeClaimModal({ product, signedIn, onClose }: {
               )}
             </div>
 
-            {signedIn && (
-              <p className="mt-3 text-center text-xs text-muted-foreground">
-                Also saved to <Link href="/dashboard/downloads" className="font-medium text-primary hover:underline">My Library</Link> for anytime access.
-              </p>
-            )}
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Files save directly to your device. Shared your email? The download links are in your inbox too.
+            </p>
             <Button variant="outline" className="mt-4 w-full" onClick={onClose}>Done</Button>
           </>
         )}
