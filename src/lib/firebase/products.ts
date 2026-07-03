@@ -290,7 +290,14 @@ export async function getHomeProducts(perSection = 8) {
     typeof x.createdAt === "string" ? Date.parse(x.createdAt as string) || 0
     : x.createdAt instanceof Date ? x.createdAt.getTime() : 0;
 
+  // Live product count per category (stored counts are never maintained)
+  const categoryCounts: Record<string, number> = {};
+  for (const p of all) {
+    if (p.category) categoryCounts[p.category] = (categoryCounts[p.category] ?? 0) + 1;
+  }
+
   return {
+    categoryCounts,
     featured: published.filter((p) => p.featured).slice(0, perSection),
     trending: published.filter((p) => p.trending).sort(bySales).slice(0, perSection),
     freeThisWeek: published.filter((p) => p.freeThisWeek).slice(0, perSection),

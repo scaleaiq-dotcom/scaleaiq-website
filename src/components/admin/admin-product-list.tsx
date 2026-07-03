@@ -79,7 +79,7 @@ export function AdminProductList() {
     const matchSearch = !search ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.category.toLowerCase().includes(search.toLowerCase()) ||
-      p.productType.toLowerCase().includes(search.toLowerCase());
+      (p.category ?? "").toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
 
@@ -139,7 +139,7 @@ export function AdminProductList() {
             <tr className="border-b bg-muted/40">
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Product</th>
               <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground sm:table-cell">Category</th>
-              <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">Type</th>
+              <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">Pricing</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Price</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Status</th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground">Actions</th>
@@ -180,7 +180,7 @@ export function AdminProductList() {
                   </div>
                 </td>
                 <td className="hidden px-4 py-3 text-xs text-muted-foreground sm:table-cell">{p.category || "—"}</td>
-                <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">{p.productType || "—"}</td>
+                <td className="hidden px-4 py-3 text-xs capitalize text-muted-foreground md:table-cell">{(p.pricingType || "—").replace("_", "-")}</td>
                 <td className="px-4 py-3 text-sm font-semibold">
                   {p.pricingType === "free" ? <span className="text-emerald-600">Free</span>
                     : p.price ? `₹${parseInt(p.price).toLocaleString("en-IN")}` : "—"}

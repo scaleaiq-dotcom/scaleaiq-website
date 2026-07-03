@@ -43,9 +43,9 @@ export function CategorySection({ categories }: { categories: Category[] }) {
               <span className="text-[11px] font-semibold leading-tight text-foreground sm:text-xs">
                 {cat.name}
               </span>
-              {cat.productCount != null && (
+              {(cat.productCount ?? 0) > 0 && (
                 <span className="hidden text-[10px] text-muted-foreground sm:block">
-                  {cat.productCount}+ Products
+                  {cat.productCount} Product{cat.productCount === 1 ? "" : "s"}
                 </span>
               )}
             </Link>

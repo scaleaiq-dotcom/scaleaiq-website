@@ -12,7 +12,7 @@ import { getHomeProducts, getCategories } from "@/lib/firebase/products";
 // Revalidate every 60 seconds — admin changes show within 1 min, no cold-start on every visit
 export const revalidate = 60;
 
-const EMPTY_HOME = { featured: [], trending: [], freeThisWeek: [], topSellers: [], recent: [], prompts: [] };
+const EMPTY_HOME = { featured: [], trending: [], freeThisWeek: [], topSellers: [], recent: [], prompts: [], categoryCounts: {} as Record<string, number> };
 
 export default async function Home() {
   const [home, categories, reviewsSnap] = await Promise.all([
@@ -21,6 +21,12 @@ export default async function Home() {
     adminDb.collection("siteReviews").where("approved", "==", true).orderBy("createdAt", "desc").limit(6).get().catch(() => null),
   ]);
   const { featured, trending, freeThisWeek, topSellers, recent, prompts } = home;
+
+  // Replace stale stored counts with live ones from the products query
+  const categoriesWithCounts = categories.map(c => ({
+    ...c,
+    productCount: home.categoryCounts[c.slug] ?? 0,
+  }));
 
   const reviews = reviewsSnap?.docs.map(d => ({
     id: d.id,
@@ -35,7 +41,7 @@ export default async function Home() {
 
       <ProductGrid title="Featured Products" products={featured} viewAllHref="/explore" />
 
-      <CategorySection categories={categories} />
+      <CategorySection categories={categoriesWithCounts} />
 
       <ProductGrid title="Trending" products={trending} viewAllHref="/explore?sort=trending" />
 
