@@ -318,6 +318,27 @@ export function ProductEditor({ productId }: { productId?: string }) {
     }
   }
 
+  // Upload any file (PDF, ZIP, audio…) for Experience fields — no image compression.
+  async function uploadExpFile(file: File, field: keyof FS) {
+    setUploadError("");
+    if (file.size > 20 * 1024 * 1024) {
+      setUploadError("File is larger than 20 MB — keep preview/sample files small.");
+      return;
+    }
+    setUploading(field);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `products/${productId ?? "new"}/experience/${Date.now()}-${safeName}`;
+      const r = storageRef(storage, path);
+      await uploadBytes(r, file);
+      upd(field, (await getDownloadURL(r)) as never);
+    } catch {
+      setUploadError("Upload failed. Check Firebase Storage rules.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
   // Guess the download type from the file itself (used by bulk upload)
   function inferDlType(file: File): string {
     const mt = file.type;
@@ -637,7 +658,15 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 Icon: FileText, color: "text-blue-500", label: "PDF Preview",
                 extra: form.pdfEnabled && (
                   <div className="mt-3 space-y-2">
-                    <Input value={form.pdfUrl} onChange={e => upd("pdfUrl", e.target.value)} placeholder="Preview PDF URL (upload a short sample in Downloads tab and paste its link)" />
+                    <div className="flex gap-2">
+                      <Input value={form.pdfUrl} onChange={e => upd("pdfUrl", e.target.value)} placeholder="Preview PDF URL — paste a link or upload →" />
+                      <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-accent">
+                        {uploading === "pdfUrl" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                        Upload PDF
+                        <input type="file" accept="application/pdf,.pdf" className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpFile(f, "pdfUrl"); e.target.value = ""; }} />
+                      </label>
+                    </div>
                     <Input value={form.pdfPages} onChange={e => upd("pdfPages", e.target.value)} placeholder="Pages shown e.g. 1-5 (label only)" />
                   </div>
                 ),
@@ -646,8 +675,14 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 on: form.sampleEnabled, set: (v: boolean) => upd("sampleEnabled", v),
                 Icon: Download, color: "text-amber-500", label: "Sample Download",
                 extra: form.sampleEnabled && (
-                  <div className="mt-3">
-                    <Input value={form.sampleUrl} onChange={e => upd("sampleUrl", e.target.value)} placeholder="Sample file URL" />
+                  <div className="mt-3 flex gap-2">
+                    <Input value={form.sampleUrl} onChange={e => upd("sampleUrl", e.target.value)} placeholder="Sample file URL — paste a link or upload →" />
+                    <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-accent">
+                      {uploading === "sampleUrl" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                      Upload File
+                      <input type="file" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpFile(f, "sampleUrl"); e.target.value = ""; }} />
+                    </label>
                   </div>
                 ),
               },
