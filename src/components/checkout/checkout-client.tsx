@@ -70,6 +70,7 @@ export function CheckoutClient() {
   const [coupon, setCoupon] = React.useState("");
   const [couponApplied, setCouponApplied] = React.useState(false);
   const [couponError, setCouponError] = React.useState("");
+  const [couponChecking, setCouponChecking] = React.useState(false);
   const [discount, setDiscount] = React.useState(0);
   const [billingName, setBillingName] = React.useState("");
   const [billingEmail, setBillingEmail] = React.useState("");
@@ -103,17 +104,29 @@ export function CheckoutClient() {
   const total = Math.max(0, subtotal - discount);
   const allFree = total === 0 && items.length > 0;
 
-  /* ── Apply coupon (placeholder — real validation later) ── */
-  function handleApplyCoupon() {
+  /* ── Apply coupon — validated against the admin's real coupons ── */
+  async function handleApplyCoupon() {
     setCouponError("");
     if (!coupon.trim()) return;
-    // Placeholder: accept SCALE10 for 10% off
-    if (coupon.trim().toUpperCase() === "SCALE10") {
-      const off = Math.round(subtotal * 0.1);
-      setDiscount(off);
-      setCouponApplied(true);
-    } else {
-      setCouponError("Invalid or expired coupon code.");
+    setCouponChecking(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: coupon.trim(), subtotal }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setDiscount(data.discount);
+        setCouponApplied(true);
+        setCoupon(data.code);
+      } else {
+        setCouponError(data.error ?? "Invalid or expired coupon code.");
+      }
+    } catch {
+      setCouponError("Could not check that coupon. Please try again.");
+    } finally {
+      setCouponChecking(false);
     }
   }
 
@@ -382,8 +395,8 @@ export function CheckoutClient() {
                     className="h-10 w-full rounded-xl border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
-                <Button variant="outline" onClick={handleApplyCoupon} className="shrink-0 rounded-xl">
-                  Apply
+                <Button variant="outline" onClick={handleApplyCoupon} disabled={couponChecking || !coupon.trim()} className="shrink-0 rounded-xl">
+                  {couponChecking ? <Loader2 className="size-4 animate-spin" /> : "Apply"}
                 </Button>
               </div>
             )}

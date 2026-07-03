@@ -13,7 +13,9 @@ interface Workshop {
   seats: number; registered: number;
   price: number; isFree: boolean;
   meetingLink: string; platform: string;
-  status: "upcoming" | "live" | "completed" | "cancelled";
+  // Must match the public /workshops page: draft is hidden, recorded shows
+  // under "On-Demand Recordings", cancelled is hidden.
+  status: "draft" | "upcoming" | "live" | "recorded" | "cancelled";
   instructor: string; tags: string;
 }
 
@@ -25,9 +27,10 @@ const BLANK: Omit<Workshop, "id" | "registered"> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
+  draft:     "bg-muted text-muted-foreground",
   upcoming:  "bg-blue-500/10 text-blue-600",
   live:      "bg-emerald-500/10 text-emerald-600",
-  completed: "bg-muted text-muted-foreground",
+  recorded:  "bg-violet-500/10 text-violet-600",
   cancelled: "bg-rose-500/10 text-rose-600",
 };
 
@@ -139,7 +142,7 @@ export default function WorkshopsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-1.5">
-        {(["all", "upcoming", "live", "completed", "cancelled"] as const).map(s => (
+        {(["all", "draft", "upcoming", "live", "recorded", "cancelled"] as const).map(s => (
           <button key={s} onClick={() => setFilter(s)}
             className={cn("cursor-pointer rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors",
               filter === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80")}>
@@ -309,10 +312,11 @@ export default function WorkshopsPage() {
                   <Field label="Status">
                     <select value={modal.status} onChange={e => upd("status", e.target.value as Workshop["status"])}
                       className="h-9 w-full cursor-pointer rounded-lg border bg-background px-3 text-sm outline-none">
+                      <option value="draft">Draft (hidden from site)</option>
                       <option value="upcoming">Upcoming</option>
                       <option value="live">Live Now</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
+                      <option value="recorded">Recorded (on-demand)</option>
+                      <option value="cancelled">Cancelled (hidden from site)</option>
                     </select>
                   </Field>
                 </div>

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 interface Workshop {
   id: string; title: string; slug?: string; description: string;
   instructor: string; date?: string; duration?: string; seats?: number;
-  price: number; status: "upcoming" | "live" | "recorded" | "draft";
+  price: number; status: "draft" | "upcoming" | "live" | "recorded" | "cancelled";
   thumbnailUrl?: string; tags?: string[];
 }
 
@@ -22,7 +22,7 @@ async function getWorkshops(): Promise<Workshop[]> {
     const snap = await adminDb.collection("workshops").get();
     return snap.docs
       .map(d => ({ id: d.id, ...d.data() } as Workshop))
-      .filter(w => w.status !== "draft")
+      .filter(w => w.status !== "draft" && w.status !== "cancelled")
       .sort((a, b) => {
         if (!a.date) return 1;
         if (!b.date) return -1;

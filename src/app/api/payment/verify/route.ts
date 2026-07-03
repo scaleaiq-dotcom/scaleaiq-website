@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { verifySessionCached } from "@/lib/admin-auth";
 import { FieldValue } from "firebase-admin/firestore";
 import { sendEmail, orderReceiptHtml, type ReceiptFile } from "@/lib/email";
+import { incrementCouponUsage } from "@/lib/coupons";
 
 export async function POST(request: NextRequest) {
   try {
@@ -103,6 +104,9 @@ export async function POST(request: NextRequest) {
       });
     }
     await batch.commit();
+
+    // Count the coupon toward its usage limit (fail-soft)
+    await incrementCouponUsage(couponCode);
 
     // Receipt email with download links (fire-and-forget)
     (async () => {

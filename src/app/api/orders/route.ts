@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { incrementCouponUsage } from "@/lib/coupons";
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,6 +82,9 @@ export async function POST(request: NextRequest) {
       }
       await batch.commit();
     }
+
+    // Count the coupon toward its usage limit (fail-soft)
+    await incrementCouponUsage(couponCode);
 
     return NextResponse.json({ orderId, status: order.status });
   } catch (err) {
