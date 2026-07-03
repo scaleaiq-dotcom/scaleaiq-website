@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth } from "@/lib/firebase/admin";
+import { verifySessionCached } from "@/lib/admin-auth";
 import Razorpay from "razorpay";
 
 const razorpay = new Razorpay({
@@ -9,12 +9,11 @@ const razorpay = new Razorpay({
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify auth
-    const sessionCookie = request.cookies.get("session")?.value;
-    if (!sessionCookie) {
+    // Verify auth (cached — the uncached check added ~300-500ms to every Buy tap)
+    const decoded = await verifySessionCached(request.cookies.get("session")?.value);
+    if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    await (await getAdminAuth()).verifySessionCookie(sessionCookie, true);
 
     const { amount, currency = "INR", receipt } = await request.json();
 

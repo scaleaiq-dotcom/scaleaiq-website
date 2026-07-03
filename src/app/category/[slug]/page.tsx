@@ -9,6 +9,16 @@ import { getCategories, getProductsByCategory } from "@/lib/firebase/products";
 
 export const revalidate = 120;
 
+// Pre-render every category page at build time (ISR keeps them fresh).
+export async function generateStaticParams() {
+  try {
+    const cats = await getCategories();
+    return cats.map(c => ({ slug: c.slug })).filter(p => p.slug);
+  } catch {
+    return [];
+  }
+}
+
 const iconMap: Record<string, LucideIcon> = {
   Bot, GraduationCap, LayoutTemplate, MessageSquareText,
   BookOpen, TrendingUp, Briefcase, Palette, Zap, Gift,

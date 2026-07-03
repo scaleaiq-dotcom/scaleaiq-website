@@ -5,6 +5,26 @@ import { ProductDetail } from "@/components/product/product-detail";
 
 export const revalidate = 120;
 
+// Pre-render published product pages at build time; anything newer is
+// rendered once on first visit, then served from the CDN cache. Without
+// this, every visit re-ran Firestore queries on the server.
+export async function generateStaticParams() {
+  try {
+    const { adminDb } = await import("@/lib/firebase/admin");
+    const snap = await adminDb
+      .collection("products")
+      .where("status", "==", "published")
+      .select("slug")
+      .limit(500)
+      .get();
+    return snap.docs
+      .map(d => ({ slug: (d.data().slug as string) || d.id }))
+      .filter(p => p.slug);
+  } catch {
+    return [];
+  }
+}
+
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

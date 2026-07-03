@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { adminDb } from "./admin";
 import type { Product, Category, ProductFilters } from "@/types/product";
 
@@ -179,18 +180,20 @@ export async function getRecentProducts(count = 10): Promise<Product[]> {
   return snap.docs
     .map((d) => docToProduct(d.id, d.data()))
     .filter(p => p.status === "published" || p.status === "coming_soon")
+    // createdAt is an ISO string at runtime — the old instanceof Date check never matched
     .sort((a, b) => {
-      const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
-      const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
-      return bTime - aTime;
+      const t = (x: Product) => typeof x.createdAt === "string" ? Date.parse(x.createdAt) || 0 : 0;
+      return t(b) - t(a);
     })
     .slice(0, count);
 }
 
-export async function getProductsByCategory(
+// cache(): generateMetadata and the page body both call these during one
+// request — without it every product/category view hits Firestore twice.
+export const getProductsByCategory = cache(async (
   categorySlug: string,
   count = 20
-): Promise<Product[]> {
+): Promise<Product[]> => {
   const snap = await adminDb
     .collection(PRODUCTS_COL)
     .where("category", "==", categorySlug)
@@ -199,9 +202,9 @@ export async function getProductsByCategory(
   return snap.docs
     .map((d) => docToProduct(d.id, d.data()))
     .filter(p => p.status === "published" || p.status === "coming_soon");
-}
+});
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
   const snap = await adminDb
     .collection(PRODUCTS_COL)
     .where("slug", "==", slug)
@@ -210,7 +213,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   if (snap.empty) return null;
   const d = snap.docs[0];
   return docToProduct(d.id, d.data());
-}
+});
 
 export async function getProductById(id: string): Promise<Product | null> {
   const snap = await adminDb.collection(PRODUCTS_COL).doc(id).get();
@@ -317,13 +320,13 @@ export async function getProductReviews(productId: string) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function getCategories(): Promise<Category[]> {
+export const getCategories = cache(async (): Promise<Category[]> => {
   const snap = await adminDb
     .collection(CATEGORIES_COL)
     .orderBy("order", "asc")
     .get();
   return snap.docs.map((d) => docToCategory(d.id, d.data()));
-}
+});
 
 export async function getCategoryBySlug(
   slug: string
