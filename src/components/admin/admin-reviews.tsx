@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Star, Check, X, Trash2, Search, Loader2, RefreshCw, Globe, ShoppingBag } from "lucide-react";
+import { ShareMenu } from "@/components/admin/share-menu";
 
 /* ── Product reviews (stored in products/{id}/reviews subcollection) ── */
 interface ProductReview {
@@ -133,6 +134,11 @@ function SiteReviewsTab() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
+                    <ShareMenu
+                      title="ScaleAIQ review"
+                      url="https://www.scaleaiq.in"
+                      message={`${"⭐".repeat(r.rating || 5)} "${r.comment}" — ${r.name} on ScaleAIQ`}
+                    />
                     <button onClick={() => toggleApprove(r)} title={r.approved ? "Revoke approval" : "Approve"}
                       className={`cursor-pointer rounded-lg p-1.5 transition-colors active:scale-95 ${r.approved ? "text-muted-foreground hover:bg-rose-50 hover:text-rose-500" : "text-muted-foreground hover:bg-emerald-50 hover:text-emerald-600"}`}>
                       <Check className="size-3.5" />
@@ -265,6 +271,11 @@ function ProductReviewsTab() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
+                    <ShareMenu
+                      title={r.productTitle ?? "ScaleAIQ product"}
+                      url="https://www.scaleaiq.in/explore"
+                      message={`${"⭐".repeat(r.rating || 5)} "${r.comment}" — ${r.userName} on ${r.productTitle ?? "ScaleAIQ"}`}
+                    />
                     {r.status !== "approved" && (
                       <button onClick={() => updateStatus(r, "approved")} title="Approve"
                         className="cursor-pointer rounded-lg p-1.5 text-muted-foreground hover:bg-emerald-50 hover:text-emerald-600 active:scale-95">

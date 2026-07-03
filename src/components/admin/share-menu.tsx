@@ -4,8 +4,9 @@ import * as React from "react";
 import { Share2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Small share dropdown for admin: WhatsApp / X / Facebook / copy link. */
-export function ShareMenu({ title, url, className }: { title: string; url: string; className?: string }) {
+/** Small share dropdown for admin: WhatsApp / X / Facebook / copy link.
+ *  Pass `message` to share custom text (e.g. a customer review) instead of the title. */
+export function ShareMenu({ title, url, message, className }: { title: string; url: string; message?: string; className?: string }) {
   const [open, setOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -18,12 +19,13 @@ export function ShareMenu({ title, url, className }: { title: string; url: strin
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const text = encodeURIComponent(`${title} — ${url}`);
+  const shareText = message ?? `${title} — ${url}`;
+  const text = encodeURIComponent(message ? `${message}\n${url}` : shareText);
   const encUrl = encodeURIComponent(url);
   const links = [
     { label: "WhatsApp", href: `https://api.whatsapp.com/send?text=${text}`, color: "text-[#25D366]" },
-    { label: "X (Twitter)", href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encUrl}`, color: "text-foreground" },
-    { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${encUrl}`, color: "text-[#1877F2]" },
+    { label: "X (Twitter)", href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(message ?? title)}&url=${encUrl}`, color: "text-foreground" },
+    { label: "Facebook", href: `https://www.facebook.com/sharer/sharer.php?u=${encUrl}&quote=${encodeURIComponent(message ?? title)}`, color: "text-[#1877F2]" },
   ];
 
   function copy() {
