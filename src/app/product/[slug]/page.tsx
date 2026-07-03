@@ -17,7 +17,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: product.title,
       description: product.shortDescription || product.description,
-      images: product.thumbnailUrl ? [product.thumbnailUrl] : [],
+      // Product image, falling back to the brand banner so WhatsApp/social
+      // previews always show something.
+      images: [product.thumbnailUrl || "/brand/hero-marketplace.png"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.title,
+      description: product.shortDescription || product.description,
+      images: [product.thumbnailUrl || "/brand/hero-marketplace.png"],
     },
   };
 }

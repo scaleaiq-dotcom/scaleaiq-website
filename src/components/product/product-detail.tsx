@@ -484,6 +484,28 @@ function PurchaseCard({ product, isFree, isComingSoon, onAddToCart, onGetFree, o
             <Button size="lg" className="w-full gap-2 font-semibold">
               <Bell className="size-4" /> Notify Me
             </Button>
+          ) : isFree ? (
+            /* FREE — every launch type goes through the claim flow so the
+               buyer gets downloads, the order is recorded, and it lands in
+               their library. External apps get an extra Open App button. */
+            <>
+              <button
+                onClick={onGetFree}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-heading font-bold text-white transition-colors hover:bg-emerald-700"
+              >
+                <Download className="size-4" /> Get for Free
+              </button>
+              {isExternal && (
+                <a
+                  href={product.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary px-4 py-2.5 font-heading font-bold text-primary transition-colors hover:bg-primary hover:text-white"
+                >
+                  <ExternalLink className="size-4" /> Open App
+                </a>
+              )}
+            </>
           ) : isExternal ? (
             <a
               href={product.externalUrl}
@@ -492,15 +514,8 @@ function PurchaseCard({ product, isFree, isComingSoon, onAddToCart, onGetFree, o
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-3 font-heading font-bold text-white transition-opacity hover:opacity-90"
             >
               <ExternalLink className="size-4" />
-              {isFree ? "Open App" : `Open App — ${formatPrice(product.price)}`}
+              {`Open App — ${formatPrice(product.price)}`}
             </a>
-          ) : isFree ? (
-            <button
-              onClick={onGetFree}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-heading font-bold text-white transition-colors hover:bg-emerald-700"
-            >
-              <Download className="size-4" /> Get for Free
-            </button>
           ) : (
             <>
               <button
@@ -591,10 +606,22 @@ function OverviewTab({ product }: { product: Product }) {
       </div>
 
       {/* Experience feature buttons */}
-      {(product.sampleEnabled && product.sampleUrl) || (product.demoEnabled && product.demoUrl) || (product.extDemoEnabled && product.extDemoUrl) ? (
+      {(product.pvEnabled && product.pvUrl) || (product.pdfEnabled && product.pdfUrl) || (product.sampleEnabled && product.sampleUrl) || (product.demoEnabled && product.demoUrl) || (product.extDemoEnabled && product.extDemoUrl) ? (
         <div className="space-y-2.5">
           <p className="text-sm font-semibold">Try Before You Buy</p>
           <div className="flex flex-wrap gap-2">
+            {product.pvEnabled && product.pvUrl && (
+              <a href={product.pvUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
+                <Video className="size-3.5" /> Watch Preview Video
+              </a>
+            )}
+            {product.pdfEnabled && product.pdfUrl && (
+              <a href={product.pdfUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
+                <FileText className="size-3.5" /> Read PDF Preview{product.pdfPages ? ` (pages ${product.pdfPages})` : ""}
+              </a>
+            )}
             {product.sampleEnabled && product.sampleUrl && (
               <a href={product.sampleUrl} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">

@@ -32,7 +32,6 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 // Categories loaded from Firestore at runtime
-const PTYPES = ["Course","AI Tool","Prompt Pack","Automation","Template","Service","AI Agent","Download","Workshop","External App"];
 const DL_TYPES = ["PDF","ZIP","RAR","Excel","CSV","Word","Code","Audio","Video File","Image","Image Pack","Prompt Pack","Workflow","Template","Checklist","Video URL","Website Link","Bonus","Certificate","Other"];
 // File-picker filters per type (upload mode)
 const DL_ACCEPT: Record<string, string> = {
@@ -68,7 +67,7 @@ interface FS {
   pricingType: string; price: string; salePrice: string; currency: string;
   thumbnail: string; heroBanner: string; productIcon: string; ogImage: string;
   pvEnabled: boolean; pvUrl: string;
-  pdfEnabled: boolean; pdfPages: string;
+  pdfEnabled: boolean; pdfPages: string; pdfUrl: string;
   sampleEnabled: boolean; sampleUrl: string;
   demoEnabled: boolean; demoUrl: string; demoMode: string;
   baEnabled: boolean; beforeImg: string; afterImg: string;
@@ -88,7 +87,7 @@ const DEF: FS = {
   pricingType: "one_time", price: "", salePrice: "", currency: "INR",
   thumbnail: "", heroBanner: "", productIcon: "", ogImage: "",
   pvEnabled: false, pvUrl: "",
-  pdfEnabled: false, pdfPages: "",
+  pdfEnabled: false, pdfPages: "", pdfUrl: "",
   sampleEnabled: false, sampleUrl: "",
   demoEnabled: false, demoUrl: "", demoMode: "modal",
   baEnabled: false, beforeImg: "", afterImg: "",
@@ -189,6 +188,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
           pvUrl: product.pvUrl ?? "",
           pdfEnabled: product.pdfEnabled ?? false,
           pdfPages: product.pdfPages ?? "",
+          pdfUrl: product.pdfUrl ?? "",
           sampleEnabled: product.sampleEnabled ?? false,
           sampleUrl: product.sampleUrl ?? "",
           demoEnabled: product.demoEnabled ?? false,
@@ -471,7 +471,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 <Input value={form.slug} onChange={e => upd("slug", e.target.value)} placeholder="ai-prompt-pack-pro" />
               </div>
             </FLD>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FLD label="Category">
                 <select className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
                   value={form.category} onChange={e => upd("category", e.target.value)}>
@@ -483,23 +483,15 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 <Input value={form.subcategory} onChange={e => upd("subcategory", e.target.value)} placeholder="e.g. ChatGPT Prompts" />
               </FLD>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FLD label="Product Type">
-                <select className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
-                  value={form.productType} onChange={e => upd("productType", e.target.value)}>
-                  {PTYPES.map(t => <option key={t}>{t}</option>)}
-                </select>
-              </FLD>
-              <FLD label="Status">
-                <select className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
-                  value={form.status} onChange={e => upd("status", e.target.value)}>
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                  <option value="coming_soon">Coming Soon</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </FLD>
-            </div>
+            <FLD label="Status">
+              <select className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none"
+                value={form.status} onChange={e => upd("status", e.target.value)}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="coming_soon">Coming Soon</option>
+                <option value="archived">Archived</option>
+              </select>
+            </FLD>
             <FLD label="Tags" hint="Comma-separated: AI, ChatGPT, Productivity">
               <Input value={form.tags} onChange={e => upd("tags", e.target.value)} placeholder="AI, ChatGPT, Productivity, Students" />
             </FLD>
@@ -544,7 +536,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
               </div>
             </div>
             {form.pricingType !== "free" && form.pricingType !== "external" && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FLD label="Price (INR)" req>
                   <Input type="number" value={form.price} onChange={e => upd("price", e.target.value)} placeholder="299" />
                 </FLD>
@@ -570,11 +562,15 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 {uploadError}
               </p>
             )}
+            <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+              <strong className="text-foreground">Only the Product Image is needed.</strong> It is used everywhere — cards, product page, and social sharing.
+              Upload a <strong className="text-foreground">1280×720 (16:9)</strong> image and it will crop perfectly on all screens. The optional images below are rarely needed.
+            </p>
             {[
-              { k: "thumbnail" as keyof FS, l: "Thumbnail", h: "16:9, 800x450px recommended" },
-              { k: "heroBanner" as keyof FS, l: "Hero Banner", h: "1200x400px recommended" },
-              { k: "productIcon" as keyof FS, l: "Product Icon", h: "256x256px square" },
-              { k: "ogImage" as keyof FS, l: "OG Image", h: "1200x630px for social sharing" },
+              { k: "thumbnail" as keyof FS, l: "Product Image (main)", h: "1280×720px, 16:9 — used on cards, product page & sharing" },
+              { k: "heroBanner" as keyof FS, l: "Hero Banner (optional)", h: "Leave empty unless this product needs its own banner" },
+              { k: "productIcon" as keyof FS, l: "Product Icon (optional)", h: "Leave empty — only for app-style products" },
+              { k: "ogImage" as keyof FS, l: "Social Share Image (optional)", h: "Leave empty — Product Image is used for WhatsApp/social previews" },
             ].map(f => (
               <FLD key={f.k as string} label={f.l} hint={f.h}>
                 {form[f.k] ? (
@@ -625,7 +621,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
         {/* ── EXPERIENCE ── */}
         {tab === "experience" && (
           <div className="space-y-5 max-w-2xl">
-            <p className="text-sm text-muted-foreground">Enable preview methods so buyers can experience the product before purchasing.</p>
+            <p className="text-sm text-muted-foreground">Enable preview methods so buyers can experience the product before purchasing. Each toggle needs its URL filled in — a toggle without a link shows nothing on the website.</p>
             {[
               {
                 on: form.pvEnabled, set: (v: boolean) => upd("pvEnabled", v),
@@ -640,8 +636,9 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 on: form.pdfEnabled, set: (v: boolean) => upd("pdfEnabled", v),
                 Icon: FileText, color: "text-blue-500", label: "PDF Preview",
                 extra: form.pdfEnabled && (
-                  <div className="mt-3">
-                    <Input value={form.pdfPages} onChange={e => upd("pdfPages", e.target.value)} placeholder="Preview pages e.g. 1-5" />
+                  <div className="mt-3 space-y-2">
+                    <Input value={form.pdfUrl} onChange={e => upd("pdfUrl", e.target.value)} placeholder="Preview PDF URL (upload a short sample in Downloads tab and paste its link)" />
+                    <Input value={form.pdfPages} onChange={e => upd("pdfPages", e.target.value)} placeholder="Pages shown e.g. 1-5 (label only)" />
                   </div>
                 ),
               },
@@ -748,7 +745,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
                     <Trash2 className="size-3.5" />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Input value={t.title} onChange={e => setT(t.id, "title", e.target.value)} placeholder="Tutorial title" />
                   <Input value={t.duration} onChange={e => setT(t.id, "duration", e.target.value)} placeholder="Duration e.g. 8:30" />
                 </div>
@@ -795,7 +792,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
                     <Trash2 className="size-3.5" />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <select className="h-9 rounded-md border bg-background px-3 text-sm outline-none"
                     value={d.type} onChange={e => setD(d.id, "type", e.target.value)}>
                     {DL_TYPES.map(t => <option key={t}>{t}</option>)}
@@ -971,13 +968,13 @@ export function ProductEditor({ productId }: { productId?: string }) {
                     <Trash2 className="size-3.5" />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Input value={u.version} onChange={e => setU(u.id, "version", e.target.value)} placeholder="e.g. 2.0" />
                   <Input type="date" value={u.date} onChange={e => setU(u.id, "date", e.target.value)} />
                 </div>
                 <textarea className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none" rows={2}
                   value={u.notes} onChange={e => setU(u.id, "notes", e.target.value)} placeholder="Release summary..." />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <p className="mb-1 text-xs font-medium">New Features</p>
                     <textarea className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none" rows={3}

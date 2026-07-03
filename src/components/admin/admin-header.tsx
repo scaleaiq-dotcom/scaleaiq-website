@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Bell, ExternalLink, Moon, Sun, Search, ChevronDown, LogOut, User, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, notifyAuthChanged } from "@/hooks/use-auth";
+import { ShareMenu } from "@/components/admin/share-menu";
 
 const titles: Record<string, string> = {
   "/admin": "Dashboard",
@@ -72,6 +73,9 @@ export function AdminHeader() {
       </div>
 
       <div className="hidden sm:block text-xs text-muted-foreground">{today}</div>
+
+      {/* Share the website (WhatsApp / X / Facebook) */}
+      <ShareMenu title="ScaleAIQ — India's AI & Digital Marketplace" url="https://www.scaleaiq.in" />
 
       <div className="ml-auto flex items-center gap-1.5">
         <Link href="/" target="_blank" className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">

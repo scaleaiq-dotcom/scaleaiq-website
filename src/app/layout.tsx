@@ -46,11 +46,13 @@ export const metadata: Metadata = {
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
     siteName: siteConfig.name,
+    images: ["/brand/hero-marketplace.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
+    images: ["/brand/hero-marketplace.png"],
   },
   // Favicon is provided by the file convention: src/app/icon.png (brand logo mark).
 };

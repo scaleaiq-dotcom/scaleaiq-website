@@ -123,6 +123,7 @@ export interface Product {
   pvUrl?: string;
   pdfEnabled?: boolean;
   pdfPages?: string;
+  pdfUrl?: string;
   sampleEnabled?: boolean;
   sampleUrl?: string;
   demoEnabled?: boolean;

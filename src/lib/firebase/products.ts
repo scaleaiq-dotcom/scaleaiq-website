@@ -71,6 +71,7 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     pvUrl: data.pvUrl ?? "",
     pdfEnabled: data.pdfEnabled ?? false,
     pdfPages: data.pdfPages ?? "",
+    pdfUrl: data.pdfUrl ?? "",
     sampleEnabled: data.sampleEnabled ?? false,
     sampleUrl: data.sampleUrl ?? "",
     demoEnabled: data.demoEnabled ?? false,

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Plus, Search, Package, Loader2, RefreshCw, Edit2, Trash2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ShareMenu } from "@/components/admin/share-menu";
 
 interface Product {
   id: string; title: string; slug: string; category: string;
@@ -192,6 +193,7 @@ export function AdminProductList() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1">
+                    <ShareMenu title={p.title} url={`https://www.scaleaiq.in/product/${p.slug}`} />
                     <Link href={`/admin/products/${p.id}`}
                       className="cursor-pointer rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
                       <Edit2 className="size-3.5" />

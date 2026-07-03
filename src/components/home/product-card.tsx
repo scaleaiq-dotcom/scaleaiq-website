@@ -23,7 +23,7 @@ export function ProductCard({
   return (
     <div className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg">
       {/* Cover */}
-      <Link href={href} className="relative block aspect-video overflow-hidden sm:aspect-[4/3]">
+      <Link href={href} className="relative block aspect-video overflow-hidden">
         {product.thumbnailUrl ? (
           <Image
             src={product.thumbnailUrl}
