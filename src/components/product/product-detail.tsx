@@ -394,20 +394,35 @@ function FreeClaimModal({ product, signedIn, onClose }: {
               </p>
             </div>
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-2.5">
               {result.files.map(f => (
                 <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer" download
-                  className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 transition-colors hover:border-primary">
-                  <Download className="size-4 shrink-0 text-primary" />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{f.title}</span>
-                  <span className="shrink-0 rounded-md border bg-card px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">{f.type}</span>
+                  className="group flex items-center gap-3 rounded-xl border-2 border-primary/20 bg-primary/5 p-3 transition-colors hover:border-primary hover:bg-primary/10">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Download className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{f.title}</span>
+                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{f.type} file</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-transform group-hover:scale-105 group-active:scale-95">
+                    <Download className="size-3.5" /> Download
+                  </span>
                 </a>
               ))}
               {result.externalUrl && (
                 <a href={result.externalUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3 transition-colors hover:border-primary">
-                  <ExternalLink className="size-4 shrink-0 text-primary" />
-                  <span className="flex-1 text-sm font-medium">Open App</span>
+                  className="group flex items-center gap-3 rounded-xl border-2 border-primary/20 bg-primary/5 p-3 transition-colors hover:border-primary hover:bg-primary/10">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <ExternalLink className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">Open the app</span>
+                    <span className="text-[11px] text-muted-foreground">Launches in a new tab</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-transform group-hover:scale-105 group-active:scale-95">
+                    Open <ExternalLink className="size-3.5" />
+                  </span>
                 </a>
               )}
               {result.files.length === 0 && !result.externalUrl && (
@@ -418,7 +433,7 @@ function FreeClaimModal({ product, signedIn, onClose }: {
             </div>
 
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              Files save directly to your device. Shared your email? The download links are in your inbox too.
+              {result.files.length > 0 ? "Tap Download to save each file to your device. " : ""}Shared your email? The links are in your inbox too.
             </p>
             <Button variant="outline" className="mt-4 w-full" onClick={onClose}>Done</Button>
           </>
