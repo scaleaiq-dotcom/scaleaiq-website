@@ -66,11 +66,16 @@ export function EbookReader({ url, title, label, onClose }: {
         await loadEpubScripts();
         if (cancelled || !viewerRef.current) return;
         const ePub = (window as any).ePub;
-        // Firebase download URLs end in "?alt=media&token=…", not ".epub", so
-        // epub.js can't detect the type and tries to read it as an unzipped
-        // folder (which fails). openAs forces it to treat the URL as an archive.
+        // Force archive mode — Firebase-style URLs don't end in ".epub" so
+        // epub.js can otherwise misdetect the type and fail.
         const book = ePub(url, { openAs: "epub" });
         bookRef.current = book;
+        // Don't hang forever if the file can't be fetched (CORS, 403, offline).
+        await Promise.race([
+          book.opened,
+          new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000)),
+        ]);
+        if (cancelled) return;
         const rendition = book.renderTo(viewerRef.current, {
           width: "100%", height: "100%", flow: "paginated", spread: "none", allowScriptedContent: true,
         });

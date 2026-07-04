@@ -603,10 +603,11 @@ function OverviewTab({ product }: { product: Product }) {
     setReaderMsg("");
     setReaderBusy(true);
     try {
+      // Access check only — the reader streams the bytes from the same-origin
+      // proxy (/api/ebook-file), which avoids Firebase CORS and hides the URL.
       const res = await fetch(`/api/ebook-url?productId=${product.id}`);
       if (res.ok) {
-        const d = await res.json();
-        setReader({ url: d.url, label: "Full book" });
+        setReader({ url: `/api/ebook-file?productId=${product.id}&type=full`, label: "Full book" });
       } else if (res.status === 401) {
         setReaderMsg("Please sign in to read this book.");
       } else if (res.status === 403) {
@@ -659,7 +660,7 @@ function OverviewTab({ product }: { product: Product }) {
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {product.previewEpubUrl && (
-              <button onClick={() => setReader({ url: product.previewEpubUrl!, label: "Free sample" })}
+              <button onClick={() => setReader({ url: `/api/ebook-file?productId=${product.id}&type=preview`, label: "Free sample" })}
                 className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-3 py-2 text-xs font-semibold transition-colors hover:border-primary hover:text-primary">
                 <BookOpen className="size-3.5" /> Read free sample
               </button>
