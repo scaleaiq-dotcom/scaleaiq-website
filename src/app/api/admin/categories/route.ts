@@ -13,7 +13,8 @@ const DEFAULT_CATS = [
   { name: "Free Resources", slug: "free", icon: "Gift", order: 7 },
   { name: "Automation", slug: "automation", icon: "Zap", order: 8 },
   { name: "Design", slug: "design", icon: "Palette", order: 9 },
-  { name: "Image Bundles", slug: "images", icon: "Images", order: 10 },
+  { name: "eBooks", slug: "ebooks", icon: "BookOpen", order: 10 },
+  { name: "Image Bundles", slug: "images", icon: "Images", order: 11 },
 ];
 
 export async function GET(req: NextRequest) {
@@ -21,10 +22,13 @@ export async function GET(req: NextRequest) {
 
   let catsSnap = await adminDb.collection("categories").orderBy("order").get();
 
-  // Seed defaults once if collection is empty
-  if (catsSnap.empty) {
+  // Add any default categories that are missing (idempotent by slug), so new
+  // defaults like eBooks / Image Bundles appear even on an already-seeded DB.
+  const existingSlugs = new Set(catsSnap.docs.map(d => d.data().slug));
+  const missing = DEFAULT_CATS.filter(c => !existingSlugs.has(c.slug));
+  if (missing.length) {
     const batch = adminDb.batch();
-    DEFAULT_CATS.forEach(cat => {
+    missing.forEach(cat => {
       const ref = adminDb.collection("categories").doc();
       batch.set(ref, { ...cat, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
     });
