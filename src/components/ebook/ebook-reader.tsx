@@ -66,7 +66,10 @@ export function EbookReader({ url, title, label, onClose }: {
         await loadEpubScripts();
         if (cancelled || !viewerRef.current) return;
         const ePub = (window as any).ePub;
-        const book = ePub(url);
+        // Firebase download URLs end in "?alt=media&token=…", not ".epub", so
+        // epub.js can't detect the type and tries to read it as an unzipped
+        // folder (which fails). openAs forces it to treat the URL as an archive.
+        const book = ePub(url, { openAs: "epub" });
         bookRef.current = book;
         const rendition = book.renderTo(viewerRef.current, {
           width: "100%", height: "100%", flow: "paginated", spread: "none", allowScriptedContent: true,
@@ -90,7 +93,11 @@ export function EbookReader({ url, title, label, onClose }: {
         book.ready.then(() => book.locations.generate(1200)).catch(() => {});
         setLoading(false);
       } catch (e) {
-        if (!cancelled) { setError("Could not open this ebook. Please try again."); setLoading(false); }
+        console.error("EbookReader open failed:", e);
+        if (!cancelled) {
+          setError("Could not open this ebook. The file may not be a valid EPUB, or it isn't publicly readable yet.");
+          setLoading(false);
+        }
       }
     })();
     return () => {
