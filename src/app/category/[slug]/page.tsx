@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bot, GraduationCap, LayoutTemplate, MessageSquareText, BookOpen, TrendingUp, Briefcase, Palette, Zap, Gift, Bell, type LucideIcon } from "lucide-react";
+import { Bot, GraduationCap, LayoutTemplate, MessageSquareText, BookOpen, TrendingUp, Briefcase, Palette, Zap, Gift, Bell, Images, type LucideIcon } from "lucide-react";
 import type { Product } from "@/types/product";
 import { ProductCard } from "@/components/home/product-card";
 import { SectionHeader } from "@/components/home/section-header";
@@ -21,7 +21,7 @@ export async function generateStaticParams() {
 
 const iconMap: Record<string, LucideIcon> = {
   Bot, GraduationCap, LayoutTemplate, MessageSquareText,
-  BookOpen, TrendingUp, Briefcase, Palette, Zap, Gift,
+  BookOpen, TrendingUp, Briefcase, Palette, Zap, Gift, Images, Image: Images,
 };
 
 type Props = { params: Promise<{ slug: string }> };
@@ -47,7 +47,7 @@ export default async function CategoryPage({ params }: Props) {
   const cat = cats.find(c => c.slug === slug);
 
   // Known slugs that may not exist in Firestore yet — show Coming Soon instead of 404
-  const knownSlugs = ["ai-tools", "courses", "templates", "prompts", "ebooks", "finance", "business", "automation", "design", "free"];
+  const knownSlugs = ["ai-tools", "courses", "templates", "prompts", "ebooks", "finance", "business", "automation", "design", "free", "images", "image-bundles"];
   if (!cat) {
     if (!knownSlugs.includes(slug)) {
       const { notFound } = await import("next/navigation");

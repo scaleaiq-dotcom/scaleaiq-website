@@ -85,6 +85,8 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     epubEnabled: data.epubEnabled ?? false,
     previewEpubUrl: data.previewEpubUrl ?? "",
     hasEpub: !!data.epubUrl,
+    galleryEnabled: data.galleryEnabled ?? false,
+    galleryImages: Array.isArray(data.galleryImages) ? data.galleryImages : [],
     // Bundle contents — file URLs stripped: delivery happens post-purchase only
     downloads: Array.isArray(data.downloads)
       ? data.downloads.map((d: Record<string, unknown>) => ({

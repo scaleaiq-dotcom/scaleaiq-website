@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
   Bot, GraduationCap, LayoutTemplate, MessageSquareText,
-  TrendingUp, Briefcase, Zap, Gift, Palette, BookOpen, type LucideIcon,
+  TrendingUp, Briefcase, Zap, Gift, Palette, BookOpen, Images, type LucideIcon,
 } from "lucide-react";
 
 import type { Category } from "@/types/product";
@@ -9,13 +9,19 @@ import { SectionHeader } from "@/components/home/section-header";
 
 const iconMap: Record<string, LucideIcon> = {
   Bot, GraduationCap, LayoutTemplate, MessageSquareText,
-  TrendingUp, Briefcase, Zap, Gift, Palette, BookOpen,
+  TrendingUp, Briefcase, Zap, Gift, Palette, BookOpen, Images, Image: Images,
+};
+
+// Fallback icon by slug when the stored icon name isn't recognised.
+const slugIcon: Record<string, LucideIcon> = {
+  images: Images, "image-bundles": Images, photos: Images,
 };
 
 const defaultAccent: Record<string, string> = {
   "ai-tools": "#00c8ff", courses: "#7b3dff", finance: "#22c55e",
   business: "#0066ff", prompts: "#d946ff", templates: "#0066ff",
   free: "#f59e0b", automation: "#7b3dff", design: "#f97316", ebooks: "#06b6d4",
+  images: "#ec4899", "image-bundles": "#ec4899",
 };
 
 export function CategorySection({ categories }: { categories: Category[] }) {
@@ -26,7 +32,7 @@ export function CategorySection({ categories }: { categories: Category[] }) {
       <SectionHeader title="Popular Categories" viewAllHref="/explore" />
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3 lg:grid-cols-9">
         {categories.map((cat) => {
-          const Icon = iconMap[cat.icon] ?? Bot;
+          const Icon = iconMap[cat.icon] ?? slugIcon[cat.slug] ?? Bot;
           const accent = cat.accentColor ?? defaultAccent[cat.slug] ?? "#7b3dff";
           return (
             <Link

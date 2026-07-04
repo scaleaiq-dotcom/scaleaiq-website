@@ -13,6 +13,7 @@ const DEFAULT_CATS = [
   { name: "Free Resources", slug: "free", icon: "Gift", order: 7 },
   { name: "Automation", slug: "automation", icon: "Zap", order: 8 },
   { name: "Design", slug: "design", icon: "Palette", order: 9 },
+  { name: "Image Bundles", slug: "images", icon: "Images", order: 10 },
 ];
 
 export async function GET(req: NextRequest) {

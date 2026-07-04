@@ -85,8 +85,18 @@ export function EbookReader({ url, title, label, onClose }: {
 
         rendition.on("relocated", (loc: any) => {
           try {
-            const p = book.locations.percentageFromCfi(loc.start.cfi);
-            if (typeof p === "number") setPct(Math.round(p * 100));
+            // Progress = how far through the spine we are, plus the page position
+            // within the current section. We deliberately DON'T use epub.js's
+            // text-based `percentage`: image-only books have almost no text, so
+            // it generates ~1 location and snaps every page to 100%.
+            const start = loc?.start;
+            const d = start?.displayed;
+            const spineCount = bookRef.current?.spine?.length || bookRef.current?.spine?.items?.length || 1;
+            const idx = typeof start?.index === "number" ? start.index : 0;
+            const frac = d && d.total ? d.page / d.total : 0;
+            let p = (idx + frac) / spineCount;
+            if (loc?.atEnd) p = 1;
+            setPct(Math.max(0, Math.min(100, Math.round(p * 100))));
           } catch {}
         });
 
@@ -95,7 +105,6 @@ export function EbookReader({ url, title, label, onClose }: {
           if (!cancelled) setToc(items);
         }).catch(() => {});
 
-        book.ready.then(() => book.locations.generate(1200)).catch(() => {});
         setLoading(false);
       } catch (e) {
         console.error("EbookReader open failed:", e);

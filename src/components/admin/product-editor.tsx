@@ -6,7 +6,7 @@ import {
   Save, Eye, Loader2, Plus, Trash2, GripVertical, Upload,
   ChevronRight, Globe, BookOpen, MessageCircle, Mail,
   Video, FileText, Download, Play, ArrowLeftRight, ExternalLink,
-  BarChart3, TrendingUp, Users, Star, CheckCircle2, X,
+  BarChart3, TrendingUp, Users, Star, CheckCircle2, X, Images,
 } from "lucide-react";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase/client";
@@ -73,6 +73,7 @@ interface FS {
   baEnabled: boolean; beforeImg: string; afterImg: string;
   extDemoEnabled: boolean; extDemoUrl: string;
   epubEnabled: boolean; epubUrl: string; previewEpubUrl: string;
+  galleryEnabled: boolean; galleryImages: string[];
   features: string; benefits: string; requirements: string; audience: string; included: string;
   tutorials: Tutorial[]; downloads: DLItem[];
   docUrl: string; githubUrl: string; websiteUrl: string; communityUrl: string; supportEmail: string;
@@ -94,6 +95,7 @@ const DEF: FS = {
   baEnabled: false, beforeImg: "", afterImg: "",
   extDemoEnabled: false, extDemoUrl: "",
   epubEnabled: false, epubUrl: "", previewEpubUrl: "",
+  galleryEnabled: false, galleryImages: [],
   features: "", benefits: "", requirements: "", audience: "", included: "",
   tutorials: [], downloads: [],
   docUrl: "", githubUrl: "", websiteUrl: "", communityUrl: "", supportEmail: "",
@@ -204,6 +206,8 @@ export function ProductEditor({ productId }: { productId?: string }) {
           epubEnabled: product.epubEnabled ?? false,
           epubUrl: product.epubUrl ?? "",
           previewEpubUrl: product.previewEpubUrl ?? "",
+          galleryEnabled: product.galleryEnabled ?? false,
+          galleryImages: Array.isArray(product.galleryImages) ? product.galleryImages : [],
           features: product.features ?? "",
           benefits: product.benefits ?? "",
           requirements: product.requirements ?? "",
@@ -318,6 +322,28 @@ export function ProductEditor({ productId }: { productId?: string }) {
       upd(field, dlUrl as never);
     } catch {
       setUploadError("Upload failed. Ensure Firebase Storage is enabled, or paste an image URL instead.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  // Upload one or more preview images for the image-bundle gallery (compressed, appended).
+  async function uploadGalleryImages(fileList: FileList) {
+    setUploadError("");
+    setUploading("galleryImages");
+    try {
+      for (const raw of Array.from(fileList)) {
+        const file = await compressImage(raw);
+        if (file.size > 5 * 1024 * 1024) { setUploadError(`"${raw.name}" is larger than 5MB — skipped.`); continue; }
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `products/${productId ?? "new"}/gallery/${Date.now()}-${safeName}`;
+        const r = storageRef(storage, path);
+        await uploadBytes(r, file);
+        const dlUrl = await getDownloadURL(r);
+        setForm(p => ({ ...p, galleryImages: [...p.galleryImages, dlUrl] }));
+      }
+    } catch {
+      setUploadError("Upload failed. Check Firebase Storage rules.");
     } finally {
       setUploading(null);
     }
@@ -757,6 +783,36 @@ export function ProductEditor({ productId }: { productId?: string }) {
                       </div>
                     </div>
                     <p className="text-[11px] text-muted-foreground">The full book never appears in the public page — buyers read it in the on-site reader after purchase. Files over 30&nbsp;MB: host on Google Drive/R2 and paste the link.</p>
+                  </div>
+                ),
+              },
+              {
+                on: form.galleryEnabled, set: (v: boolean) => upd("galleryEnabled", v),
+                Icon: Images, color: "text-pink-500", label: "Image Bundle — Preview Gallery",
+                extra: form.galleryEnabled && (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-xs text-muted-foreground">Preview images anyone can view for free. Put the full-resolution set in the <b>Downloads</b> tab (as images or a ZIP) — that unlocks after purchase or free claim.</p>
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition-colors hover:bg-accent">
+                      {uploading === "galleryImages" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                      Upload preview images
+                      <input type="file" accept="image/*" multiple className="hidden"
+                        onChange={e => { if (e.target.files?.length) uploadGalleryImages(e.target.files); e.target.value = ""; }} />
+                    </label>
+                    {form.galleryImages.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {form.galleryImages.map((src, idx) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <div key={idx} className="group relative aspect-square overflow-hidden rounded-lg border">
+                            <img src={src} alt={`Preview ${idx + 1}`} className="size-full object-cover" />
+                            <button type="button" onClick={() => setForm(p => ({ ...p, galleryImages: p.galleryImages.filter((_, i) => i !== idx) }))}
+                              className="absolute right-1 top-1 rounded-md bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                              <Trash2 className="size-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">{form.galleryImages.length} preview image{form.galleryImages.length === 1 ? "" : "s"} added.</p>
                   </div>
                 ),
               },

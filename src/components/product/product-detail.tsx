@@ -681,6 +681,11 @@ function OverviewTab({ product }: { product: Product }) {
         <EbookReader url={reader.url} title={product.title} label={reader.label} onClose={() => setReader(null)} />
       )}
 
+      {/* Image bundle preview gallery (free to view) */}
+      {product.galleryEnabled && (product.galleryImages?.length ?? 0) > 0 && (
+        <ImageGallery images={product.galleryImages!} isFree={isFree} />
+      )}
+
       {/* Experience feature buttons */}
       {(product.pvEnabled && product.pvUrl) || (product.pdfEnabled && product.pdfUrl) || (product.sampleEnabled && product.sampleUrl) || (product.demoEnabled && product.demoUrl) || (product.extDemoEnabled && product.extDemoUrl) ? (
         <div className="space-y-2.5">
@@ -754,6 +759,64 @@ const fileIconMap: Record<string, typeof FileText> = {
   "Prompt Pack": MessageSquare, Workflow: Layers, Template: Layers,
   Checklist: ListChecks, Certificate: Star, Bonus: Sparkles,
 };
+
+// ─── Image bundle preview gallery (free to view; full set unlocks on purchase) ─
+function ImageGallery({ images, isFree }: { images: string[]; isFree: boolean }) {
+  const [open, setOpen] = React.useState<number | null>(null);
+  const show = (i: number) => setOpen(i);
+  const close = () => setOpen(null);
+  const move = (d: number) => setOpen(o => o === null ? o : (o + d + images.length) % images.length);
+
+  React.useEffect(() => {
+    if (open === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+      if (e.key === "ArrowRight") move(1);
+      if (e.key === "ArrowLeft") move(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, images.length]);
+
+  return (
+    <div className="rounded-xl border bg-gradient-to-br from-pink-500/5 to-primary/5 p-4">
+      <div className="flex items-center gap-2">
+        <ImageIcon className="size-4 text-pink-500" />
+        <p className="text-sm font-semibold">Preview the image bundle</p>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {images.length} sample{images.length === 1 ? "" : "s"} — tap to enlarge. {isFree ? "Get the full-resolution set free below." : "The full-resolution pack unlocks after purchase."}
+      </p>
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {images.map((src, i) => (
+          <button key={i} onClick={() => show(i)}
+            className="group relative aspect-square overflow-hidden rounded-lg border bg-muted/30">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt={`Preview ${i + 1}`} loading="lazy"
+              className="size-full object-cover transition-transform duration-200 group-hover:scale-105" />
+          </button>
+        ))}
+      </div>
+
+      {open !== null && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4" onClick={close}>
+          <button onClick={close} aria-label="Close" className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-white/10 text-2xl leading-none text-white hover:bg-white/20">×</button>
+          {images.length > 1 && (
+            <>
+              <button onClick={e => { e.stopPropagation(); move(-1); }} aria-label="Previous" className="absolute left-3 flex size-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">‹</button>
+              <button onClick={e => { e.stopPropagation(); move(1); }} aria-label="Next" className="absolute right-3 flex size-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">›</button>
+            </>
+          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={images[open]} alt={`Preview ${open + 1}`} onClick={e => e.stopPropagation()}
+            className="max-h-[85vh] max-w-full rounded-lg object-contain" />
+          <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white">{open + 1} / {images.length}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function WhatsIncluded({ product }: { product: Product }) {
   const files = product.downloads ?? [];

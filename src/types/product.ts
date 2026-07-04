@@ -138,6 +138,11 @@ export interface Product {
   previewEpubUrl?: string;
   hasEpub?: boolean;
 
+  // Image bundle: a public preview gallery (free to view); the full-resolution
+  // set is delivered via downloads after purchase/claim.
+  galleryEnabled?: boolean;
+  galleryImages?: string[];
+
   // Bundle contents & learning material (from editor tabs — sanitized for public display)
   downloads?: ProductFile[];
   tutorials?: ProductTutorial[];
