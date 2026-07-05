@@ -13,12 +13,21 @@ export interface CartItem {
   quantity: number;
 }
 
+/** Coupon applied to the cart — single source of truth shared by the cart
+ *  drawer and the checkout page, so it's applied once and shown everywhere. */
+export interface AppliedCoupon {
+  code: string;
+  discount: number;
+}
+
 interface CartStore {
   items: CartItem[];
   isOpen: boolean;
+  coupon: AppliedCoupon | null;
   addItem: (item: Omit<CartItem, "quantity">) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
+  setCoupon: (coupon: AppliedCoupon | null) => void;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -31,6 +40,7 @@ export const useCart = create<CartStore>()(
     (set, get) => ({
       items: [],
       isOpen: false,
+      coupon: null,
 
       addItem: (item) => {
         const exists = get().items.find(i => i.id === item.id);
@@ -44,7 +54,9 @@ export const useCart = create<CartStore>()(
       removeItem: (id) =>
         set(state => ({ items: state.items.filter(i => i.id !== id) })),
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], coupon: null }),
+
+      setCoupon: (coupon) => set({ coupon }),
 
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),

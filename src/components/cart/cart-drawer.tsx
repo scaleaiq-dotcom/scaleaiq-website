@@ -9,15 +9,14 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function CartDrawer() {
-  const { items, isOpen, closeCart, removeItem, total, count } = useCart();
+  const { items, isOpen, closeCart, removeItem, total, count, coupon: applied, setCoupon: setApplied } = useCart();
   const cartTotal = total();
   const cartCount = count();
   const hasFreeOnly = items.every(i => i.pricingType === "free");
 
-  // Coupon — validated against the real coupons; the code is stashed in
-  // sessionStorage so the checkout page picks it up automatically.
+  // Coupon lives in the shared cart store — apply it here OR at checkout,
+  // it's the same coupon everywhere.
   const [coupon, setCoupon] = React.useState("");
-  const [applied, setApplied] = React.useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = React.useState("");
   const [checking, setChecking] = React.useState(false);
 
@@ -36,7 +35,6 @@ export function CartDrawer() {
       if (d.valid) {
         setApplied({ code: d.code, discount: d.discount });
         setCoupon(d.code);
-        try { sessionStorage.setItem("cart_coupon", d.code); } catch {}
       } else {
         setApplied(null);
         setCouponError(d.error ?? "Invalid or expired coupon code.");
@@ -52,7 +50,6 @@ export function CartDrawer() {
     setApplied(null);
     setCoupon("");
     setCouponError("");
-    try { sessionStorage.removeItem("cart_coupon"); } catch {}
   }
 
   // Re-validate when the cart total changes (percent discounts depend on it)

@@ -65,13 +65,15 @@ const trustItems = [
 export function CheckoutClient() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { items, removeItem, clearCart } = useCart();
+  const { items, removeItem, clearCart, coupon: appliedCoupon, setCoupon: setAppliedCoupon } = useCart();
 
-  const [coupon, setCoupon] = React.useState("");
-  const [couponApplied, setCouponApplied] = React.useState(false);
+  // Applied coupon lives in the shared cart store — applying it in the cart
+  // drawer or here is the same thing; no need to enter it twice.
+  const [coupon, setCoupon] = React.useState(appliedCoupon?.code ?? "");
+  const couponApplied = !!appliedCoupon;
+  const discount = appliedCoupon?.discount ?? 0;
   const [couponError, setCouponError] = React.useState("");
   const [couponChecking, setCouponChecking] = React.useState(false);
-  const [discount, setDiscount] = React.useState(0);
   const [billingName, setBillingName] = React.useState("");
   const [billingEmail, setBillingEmail] = React.useState("");
   const [placing, setPlacing] = React.useState(false);
@@ -117,8 +119,7 @@ export function CheckoutClient() {
       });
       const data = await res.json();
       if (data.valid) {
-        setDiscount(data.discount);
-        setCouponApplied(true);
+        setAppliedCoupon({ code: data.code, discount: data.discount });
         setCoupon(data.code);
       } else {
         setCouponError(data.error ?? "Invalid or expired coupon code.");
@@ -128,27 +129,18 @@ export function CheckoutClient() {
     } finally {
       setCouponChecking(false);
     }
-  }, [subtotal]);
+  }, [subtotal, setAppliedCoupon]);
 
   function handleApplyCoupon() { applyCode(coupon); }
 
-  // Auto-apply a coupon the buyer already entered in the cart drawer
-  const autoCouponDone = React.useRef(false);
+  // Show the code carried over from the cart drawer in the input box
   React.useEffect(() => {
-    if (autoCouponDone.current || couponApplied || items.length === 0) return;
-    let saved: string | null = null;
-    try { saved = sessionStorage.getItem("cart_coupon"); } catch {}
-    if (saved) {
-      autoCouponDone.current = true;
-      setCoupon(saved);
-      applyCode(saved);
-    }
-  }, [items.length, couponApplied, applyCode]);
+    if (appliedCoupon?.code) setCoupon(appliedCoupon.code);
+  }, [appliedCoupon?.code]);
 
   function removeCoupon() {
     setCoupon("");
-    setCouponApplied(false);
-    setDiscount(0);
+    setAppliedCoupon(null);
     setCouponError("");
   }
 
@@ -171,7 +163,6 @@ export function CheckoutClient() {
         const data = await res.json();
         setOrderId(data.orderId);
         clearCart();
-        try { sessionStorage.removeItem("cart_coupon"); } catch {}
         setDone(true);
         return;
       }
@@ -221,7 +212,6 @@ export function CheckoutClient() {
               const data = await verifyRes.json();
               setOrderId(data.orderId);
               clearCart();
-              try { sessionStorage.removeItem("cart_coupon"); } catch {}
               setDone(true);
               resolve();
             } catch (err) {
