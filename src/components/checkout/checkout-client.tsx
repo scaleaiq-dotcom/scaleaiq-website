@@ -105,15 +105,15 @@ export function CheckoutClient() {
   const allFree = total === 0 && items.length > 0;
 
   /* ── Apply coupon — validated against the admin's real coupons ── */
-  async function handleApplyCoupon() {
+  const applyCode = React.useCallback(async (code: string) => {
     setCouponError("");
-    if (!coupon.trim()) return;
+    if (!code.trim()) return;
     setCouponChecking(true);
     try {
       const res = await fetch("/api/coupons/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: coupon.trim(), subtotal }),
+        body: JSON.stringify({ code: code.trim(), subtotal }),
       });
       const data = await res.json();
       if (data.valid) {
@@ -128,7 +128,22 @@ export function CheckoutClient() {
     } finally {
       setCouponChecking(false);
     }
-  }
+  }, [subtotal]);
+
+  function handleApplyCoupon() { applyCode(coupon); }
+
+  // Auto-apply a coupon the buyer already entered in the cart drawer
+  const autoCouponDone = React.useRef(false);
+  React.useEffect(() => {
+    if (autoCouponDone.current || couponApplied || items.length === 0) return;
+    let saved: string | null = null;
+    try { saved = sessionStorage.getItem("cart_coupon"); } catch {}
+    if (saved) {
+      autoCouponDone.current = true;
+      setCoupon(saved);
+      applyCode(saved);
+    }
+  }, [items.length, couponApplied, applyCode]);
 
   function removeCoupon() {
     setCoupon("");
@@ -156,6 +171,7 @@ export function CheckoutClient() {
         const data = await res.json();
         setOrderId(data.orderId);
         clearCart();
+        try { sessionStorage.removeItem("cart_coupon"); } catch {}
         setDone(true);
         return;
       }
@@ -205,6 +221,7 @@ export function CheckoutClient() {
               const data = await verifyRes.json();
               setOrderId(data.orderId);
               clearCart();
+              try { sessionStorage.removeItem("cart_coupon"); } catch {}
               setDone(true);
               resolve();
             } catch (err) {

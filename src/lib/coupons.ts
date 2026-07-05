@@ -20,7 +20,8 @@ export async function resolveCoupon(
   code: string | null | undefined,
   subtotal: number,
 ): Promise<CouponResult> {
-  const normalized = String(code ?? "").trim().toUpperCase();
+  // Strip ALL whitespace: buyers often type "LAUNCH 50" for "LAUNCH50".
+  const normalized = String(code ?? "").replace(/\s+/g, "").toUpperCase();
   const sub = Number(subtotal) || 0;
   if (!normalized) return { valid: false, error: "Enter a coupon code." };
 
@@ -68,7 +69,8 @@ export async function resolveCoupon(
  * limits are actually enforced. Fail-soft — never blocks order completion.
  */
 export async function incrementCouponUsage(code: string | null | undefined) {
-  const normalized = String(code ?? "").trim().toUpperCase();
+  // Strip ALL whitespace: buyers often type "LAUNCH 50" for "LAUNCH50".
+  const normalized = String(code ?? "").replace(/\s+/g, "").toUpperCase();
   if (!normalized) return;
   try {
     const snap = await adminDb.collection("coupons").where("code", "==", normalized).limit(1).get();
