@@ -47,6 +47,19 @@ function slugify(t: string) {
   return t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+// Load stored multi-file rows; fall back to the legacy single URL as row 1
+// so products saved before multi-file support show their existing file.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function loadExpRows(stored: any, legacyUrl?: string): { id: string; title: string; url: string }[] {
+  if (Array.isArray(stored) && stored.length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return stored.filter((r: any) => r?.url).map((r: any) => ({
+      id: r.id ?? crypto.randomUUID(), title: r.title ?? "", url: r.url,
+    }));
+  }
+  return legacyUrl ? [{ id: crypto.randomUUID(), title: "", url: legacyUrl }] : [];
+}
+
 interface Tutorial {
   id: string; title: string; videoUrl: string; duration: string;
   description: string; order: number; free: boolean;
@@ -60,15 +73,18 @@ interface VUpdate {
   newFeatures: string; bugFixes: string; date: string;
 }
 
+/** One preview file/link row in the Experience tab (e.g. English + Hindi PDFs). */
+type ExpRow = { id: string; title: string; url: string };
+
 interface FS {
   title: string; slug: string; category: string; subcategory: string; tags: string;
   shortDesc: string; fullDesc: string; productType: string; status: string;
   featured: boolean; comingSoon: boolean; isNew: boolean; trending: boolean; bestSeller: boolean; freeThisWeek: boolean;
   pricingType: string; price: string; salePrice: string; currency: string;
   thumbnail: string; heroBanner: string; productIcon: string; ogImage: string;
-  pvEnabled: boolean; pvUrl: string;
-  pdfEnabled: boolean; pdfPages: string; pdfUrl: string;
-  sampleEnabled: boolean; sampleUrl: string;
+  pvEnabled: boolean; pvUrl: string; pvVideos: ExpRow[];
+  pdfEnabled: boolean; pdfPages: string; pdfUrl: string; pdfFiles: ExpRow[];
+  sampleEnabled: boolean; sampleUrl: string; sampleFiles: ExpRow[];
   demoEnabled: boolean; demoUrl: string; demoMode: string;
   baEnabled: boolean; beforeImg: string; afterImg: string;
   extDemoEnabled: boolean; extDemoUrl: string;
@@ -88,9 +104,9 @@ const DEF: FS = {
   featured: false, comingSoon: false, isNew: true, trending: false, bestSeller: false, freeThisWeek: false,
   pricingType: "one_time", price: "", salePrice: "", currency: "INR",
   thumbnail: "", heroBanner: "", productIcon: "", ogImage: "",
-  pvEnabled: false, pvUrl: "",
-  pdfEnabled: false, pdfPages: "", pdfUrl: "",
-  sampleEnabled: false, sampleUrl: "",
+  pvEnabled: false, pvUrl: "", pvVideos: [],
+  pdfEnabled: false, pdfPages: "", pdfUrl: "", pdfFiles: [],
+  sampleEnabled: false, sampleUrl: "", sampleFiles: [],
   demoEnabled: false, demoUrl: "", demoMode: "modal",
   baEnabled: false, beforeImg: "", afterImg: "",
   extDemoEnabled: false, extDemoUrl: "",
@@ -146,7 +162,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
   const [loading, setLoading] = React.useState(!!productId);
   const [categories, setCategories] = React.useState<{ id: string; name: string; slug: string }[]>([]);
   const [successMsg, setSuccessMsg] = React.useState("");
-  const [uploading, setUploading] = React.useState<keyof FS | null>(null);
+  const [uploading, setUploading] = React.useState<string | null>(null);
   const [uploadError, setUploadError] = React.useState("");
   const [uploadingDl, setUploadingDl] = React.useState<string | null>(null);
 
@@ -190,11 +206,14 @@ export function ProductEditor({ productId }: { productId?: string }) {
           ogImage: product.ogImage ?? "",
           pvEnabled: product.pvEnabled ?? false,
           pvUrl: product.pvUrl ?? "",
+          pvVideos: loadExpRows(product.pvVideos, product.pvUrl),
           pdfEnabled: product.pdfEnabled ?? false,
           pdfPages: product.pdfPages ?? "",
           pdfUrl: product.pdfUrl ?? "",
+          pdfFiles: loadExpRows(product.pdfFiles, product.pdfUrl),
           sampleEnabled: product.sampleEnabled ?? false,
           sampleUrl: product.sampleUrl ?? "",
+          sampleFiles: loadExpRows(product.sampleFiles, product.sampleUrl),
           demoEnabled: product.demoEnabled ?? false,
           demoUrl: product.demoUrl ?? "",
           demoMode: product.demoMode ?? "modal",
@@ -246,7 +265,13 @@ export function ProductEditor({ productId }: { productId?: string }) {
     setSaving(true);
     setSuccessMsg("");
     try {
-      const payload = status ? { ...form, status } : form;
+      // Keep legacy single-URL fields in sync with the first multi-file row
+      const legacySync = {
+        pvUrl: form.pvVideos[0]?.url ?? "",
+        pdfUrl: form.pdfFiles[0]?.url ?? "",
+        sampleUrl: form.sampleFiles[0]?.url ?? "",
+      };
+      const payload = status ? { ...form, ...legacySync, status } : { ...form, ...legacySync };
       const url = productId ? `/api/admin/products/${productId}` : "/api/admin/products";
       const res = await fetch(url, {
         method: productId ? "PATCH" : "POST",
@@ -342,6 +367,38 @@ export function ProductEditor({ productId }: { productId?: string }) {
         const dlUrl = await getDownloadURL(r);
         setForm(p => ({ ...p, galleryImages: [...p.galleryImages, dlUrl] }));
       }
+    } catch {
+      setUploadError("Upload failed. Check Firebase Storage rules.");
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  // ── Multi-file Experience rows (e.g. English + Hindi preview PDFs) ──
+  type ExpListField = "pvVideos" | "pdfFiles" | "sampleFiles";
+
+  function addExpRow(list: ExpListField) {
+    setForm(p => ({ ...p, [list]: [...p[list], { id: crypto.randomUUID(), title: "", url: "" }] }));
+  }
+  function updExpRow(list: ExpListField, id: string, patch: Partial<ExpRow>) {
+    setForm(p => ({ ...p, [list]: p[list].map(r => r.id === id ? { ...r, ...patch } : r) }));
+  }
+  function delExpRow(list: ExpListField, id: string) {
+    setForm(p => ({ ...p, [list]: p[list].filter(r => r.id !== id) }));
+  }
+  async function uploadExpRowFile(file: File, list: ExpListField, id: string) {
+    setUploadError("");
+    if (file.size > 30 * 1024 * 1024) {
+      setUploadError("File is larger than 30 MB. Host it on Google Drive/R2 and paste the URL instead.");
+      return;
+    }
+    setUploading(`${list}:${id}`);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `products/${productId ?? "new"}/experience/${Date.now()}-${safeName}`;
+      const r = storageRef(storage, path);
+      await uploadBytes(r, file);
+      updExpRow(list, id, { url: await getDownloadURL(r) });
     } catch {
       setUploadError("Upload failed. Check Firebase Storage rules.");
     } finally {
@@ -679,44 +736,82 @@ export function ProductEditor({ productId }: { productId?: string }) {
             <p className="text-sm text-muted-foreground">Enable preview methods so buyers can experience the product before purchasing. Each toggle needs its URL filled in — a toggle without a link shows nothing on the website.</p>
             {[
               {
-                on: form.pvEnabled, set: (v: boolean) => upd("pvEnabled", v),
+                on: form.pvEnabled, set: (v: boolean) => { upd("pvEnabled", v); if (v && form.pvVideos.length === 0) addExpRow("pvVideos"); },
                 Icon: Video, color: "text-violet-500", label: "Preview Video",
                 extra: form.pvEnabled && (
-                  <div className="mt-3">
-                    <Input value={form.pvUrl} onChange={e => upd("pvUrl", e.target.value)} placeholder="YouTube / Vimeo URL" />
+                  <div className="mt-3 space-y-2">
+                    {form.pvVideos.map(row => (
+                      <div key={row.id} className="flex flex-col gap-2 sm:flex-row">
+                        <Input className="sm:w-36 shrink-0" value={row.title} onChange={e => updExpRow("pvVideos", row.id, { title: e.target.value })} placeholder="Label e.g. Hindi" />
+                        <Input value={row.url} onChange={e => updExpRow("pvVideos", row.id, { url: e.target.value })} placeholder="YouTube / Vimeo URL" />
+                        <button type="button" onClick={() => delExpRow("pvVideos", row.id)} aria-label="Remove video"
+                          className="flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-md border px-2.5 text-muted-foreground transition-colors hover:text-rose-500">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addExpRow("pvVideos")} className="cursor-pointer text-xs font-semibold text-primary hover:underline">
+                      + Add another video
+                    </button>
                   </div>
                 ),
               },
               {
-                on: form.pdfEnabled, set: (v: boolean) => upd("pdfEnabled", v),
+                on: form.pdfEnabled, set: (v: boolean) => { upd("pdfEnabled", v); if (v && form.pdfFiles.length === 0) addExpRow("pdfFiles"); },
                 Icon: FileText, color: "text-blue-500", label: "PDF Preview",
                 extra: form.pdfEnabled && (
                   <div className="mt-3 space-y-2">
-                    <div className="flex gap-2">
-                      <Input value={form.pdfUrl} onChange={e => upd("pdfUrl", e.target.value)} placeholder="Preview PDF URL — paste a link or upload →" />
-                      <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-accent">
-                        {uploading === "pdfUrl" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-                        Upload PDF
-                        <input type="file" accept="application/pdf,.pdf" className="hidden"
-                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpFile(f, "pdfUrl"); e.target.value = ""; }} />
-                      </label>
-                    </div>
+                    {form.pdfFiles.map(row => (
+                      <div key={row.id} className="flex flex-col gap-2 sm:flex-row">
+                        <Input className="sm:w-36 shrink-0" value={row.title} onChange={e => updExpRow("pdfFiles", row.id, { title: e.target.value })} placeholder="Label e.g. English" />
+                        <Input value={row.url} onChange={e => updExpRow("pdfFiles", row.id, { url: e.target.value })} placeholder="PDF URL — paste or upload →" />
+                        <div className="flex gap-2">
+                          <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-accent">
+                            {uploading === `pdfFiles:${row.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                            Upload
+                            <input type="file" accept="application/pdf,.pdf" className="hidden"
+                              onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpRowFile(f, "pdfFiles", row.id); e.target.value = ""; }} />
+                          </label>
+                          <button type="button" onClick={() => delExpRow("pdfFiles", row.id)} aria-label="Remove PDF"
+                            className="flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-md border px-2.5 text-muted-foreground transition-colors hover:text-rose-500">
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addExpRow("pdfFiles")} className="cursor-pointer text-xs font-semibold text-primary hover:underline">
+                      + Add another PDF
+                    </button>
                     <Input value={form.pdfPages} onChange={e => upd("pdfPages", e.target.value)} placeholder="Pages shown e.g. 1-5 (label only)" />
                   </div>
                 ),
               },
               {
-                on: form.sampleEnabled, set: (v: boolean) => upd("sampleEnabled", v),
+                on: form.sampleEnabled, set: (v: boolean) => { upd("sampleEnabled", v); if (v && form.sampleFiles.length === 0) addExpRow("sampleFiles"); },
                 Icon: Download, color: "text-amber-500", label: "Sample Download",
                 extra: form.sampleEnabled && (
-                  <div className="mt-3 flex gap-2">
-                    <Input value={form.sampleUrl} onChange={e => upd("sampleUrl", e.target.value)} placeholder="Sample file URL — paste a link or upload →" />
-                    <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-accent">
-                      {uploading === "sampleUrl" ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-                      Upload File
-                      <input type="file" className="hidden"
-                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpFile(f, "sampleUrl"); e.target.value = ""; }} />
-                    </label>
+                  <div className="mt-3 space-y-2">
+                    {form.sampleFiles.map(row => (
+                      <div key={row.id} className="flex flex-col gap-2 sm:flex-row">
+                        <Input className="sm:w-36 shrink-0" value={row.title} onChange={e => updExpRow("sampleFiles", row.id, { title: e.target.value })} placeholder="Label e.g. Hindi" />
+                        <Input value={row.url} onChange={e => updExpRow("sampleFiles", row.id, { url: e.target.value })} placeholder="Sample file URL — paste or upload →" />
+                        <div className="flex gap-2">
+                          <label className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-accent">
+                            {uploading === `sampleFiles:${row.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                            Upload
+                            <input type="file" className="hidden"
+                              onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpRowFile(f, "sampleFiles", row.id); e.target.value = ""; }} />
+                          </label>
+                          <button type="button" onClick={() => delExpRow("sampleFiles", row.id)} aria-label="Remove sample"
+                            className="flex h-9 shrink-0 cursor-pointer items-center justify-center rounded-md border px-2.5 text-muted-foreground transition-colors hover:text-rose-500">
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addExpRow("sampleFiles")} className="cursor-pointer text-xs font-semibold text-primary hover:underline">
+                      + Add another file
+                    </button>
                   </div>
                 ),
               },

@@ -9,6 +9,20 @@ function prettify(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Normalise a multi-file Experience list; fall back to the legacy single URL
+// so products saved before multi-file support keep working.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function expList(stored: any, legacyUrl?: string): { id: string; title: string; url: string }[] {
+  if (Array.isArray(stored)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = stored.filter((r: any) => r?.url).map((r: any, i: number) => ({
+      id: String(r.id ?? i), title: String(r.title ?? ""), url: String(r.url),
+    }));
+    if (rows.length) return rows;
+  }
+  return legacyUrl ? [{ id: "legacy", title: "", url: legacyUrl }] : [];
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function docToProduct(id: string, data: Record<string, any>): Product {
   // The admin editor saves `price`/`salePrice` as strings; the public side uses
@@ -70,11 +84,14 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     // Experience features from editor
     pvEnabled: data.pvEnabled ?? false,
     pvUrl: data.pvUrl ?? "",
+    pvVideos: expList(data.pvVideos, data.pvUrl),
     pdfEnabled: data.pdfEnabled ?? false,
     pdfPages: data.pdfPages ?? "",
     pdfUrl: data.pdfUrl ?? "",
+    pdfFiles: expList(data.pdfFiles, data.pdfUrl),
     sampleEnabled: data.sampleEnabled ?? false,
     sampleUrl: data.sampleUrl ?? "",
+    sampleFiles: expList(data.sampleFiles, data.sampleUrl),
     demoEnabled: data.demoEnabled ?? false,
     demoUrl: data.demoUrl ?? "",
     demoMode: data.demoMode ?? "tab",

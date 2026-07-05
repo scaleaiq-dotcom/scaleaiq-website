@@ -687,28 +687,28 @@ function OverviewTab({ product }: { product: Product }) {
       )}
 
       {/* Experience feature buttons */}
-      {(product.pvEnabled && product.pvUrl) || (product.pdfEnabled && product.pdfUrl) || (product.sampleEnabled && product.sampleUrl) || (product.demoEnabled && product.demoUrl) || (product.extDemoEnabled && product.extDemoUrl) ? (
+      {(product.pvEnabled && product.pvVideos?.length) || (product.pdfEnabled && product.pdfFiles?.length) || (product.sampleEnabled && product.sampleFiles?.length) || (product.demoEnabled && product.demoUrl) || (product.extDemoEnabled && product.extDemoUrl) ? (
         <div className="space-y-2.5">
           <p className="text-sm font-semibold">Try Before You Buy</p>
           <div className="flex flex-wrap gap-2">
-            {product.pvEnabled && product.pvUrl && (
-              <a href={product.pvUrl} target="_blank" rel="noopener noreferrer"
+            {product.pvEnabled && (product.pvVideos ?? []).map(v => (
+              <a key={v.id} href={v.url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                <Video className="size-3.5" /> Watch Preview Video
+                <Video className="size-3.5" /> {v.title ? `Preview Video — ${v.title}` : "Watch Preview Video"}
               </a>
-            )}
-            {product.pdfEnabled && product.pdfUrl && (
-              <a href={product.pdfUrl} target="_blank" rel="noopener noreferrer"
+            ))}
+            {product.pdfEnabled && (product.pdfFiles ?? []).map(f => (
+              <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                <FileText className="size-3.5" /> Read PDF Preview{product.pdfPages ? ` (pages ${product.pdfPages})` : ""}
+                <FileText className="size-3.5" /> {f.title ? `PDF Preview — ${f.title}` : "Read PDF Preview"}{product.pdfPages ? ` (pages ${product.pdfPages})` : ""}
               </a>
-            )}
-            {product.sampleEnabled && product.sampleUrl && (
-              <a href={product.sampleUrl} target="_blank" rel="noopener noreferrer"
+            ))}
+            {product.sampleEnabled && (product.sampleFiles ?? []).map(f => (
+              <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                <Download className="size-3.5" /> Free Sample
+                <Download className="size-3.5" /> {f.title ? `Free Sample — ${f.title}` : "Free Sample"}
               </a>
-            )}
+            ))}
             {product.demoEnabled && product.demoUrl && (
               <a href={product.demoUrl} target={product.demoMode === "tab" ? "_blank" : "_self"} rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">

@@ -32,6 +32,13 @@ export interface ProductFile {
   order?: number;
 }
 
+/** One preview file/link in the Experience section (label + URL). */
+export interface ExpFile {
+  id: string;
+  title?: string;
+  url: string;
+}
+
 export interface ProductTutorial {
   id: string;
   title: string;
@@ -121,11 +128,15 @@ export interface Product {
   // Experience features (set in admin editor)
   pvEnabled?: boolean;
   pvUrl?: string;
+  /** Multi-file previews (e.g. English + Hindi). Legacy single URLs are folded in as row 1. */
+  pvVideos?: ExpFile[];
   pdfEnabled?: boolean;
   pdfPages?: string;
   pdfUrl?: string;
+  pdfFiles?: ExpFile[];
   sampleEnabled?: boolean;
   sampleUrl?: string;
+  sampleFiles?: ExpFile[];
   demoEnabled?: boolean;
   demoUrl?: string;
   demoMode?: string;
