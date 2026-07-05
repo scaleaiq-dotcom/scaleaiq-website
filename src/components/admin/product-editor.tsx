@@ -441,6 +441,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
     if (ext === "xls" || ext === "xlsx") return "Excel";
     if (ext === "csv") return "CSV";
     if (ext === "doc" || ext === "docx") return "Word";
+    if (["html", "htm", "js", "mjs", "css", "ts", "jsx", "tsx", "json", "py"].includes(ext)) return "Code";
     return "Other";
   }
 
