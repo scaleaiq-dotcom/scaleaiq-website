@@ -53,6 +53,19 @@ export function ProductDetail({ product, related }: Props) {
     ...product.images,
   ];
 
+  // Already purchased? The page itself is cached and identical for everyone,
+  // so ownership is checked per-user and the Buy buttons swap to "You own this".
+  const [owned, setOwned] = React.useState(false);
+  React.useEffect(() => {
+    if (!user || isFree) { setOwned(false); return; }
+    let cancelled = false;
+    fetch(`/api/owns?productId=${product.id}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setOwned(!!d.owned); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, product.id, isFree]);
+
   function requireAuth(action: () => void) {
     if (!user) {
       router.push(`/sign-in?redirect=/product/${product.slug}`);
@@ -92,7 +105,7 @@ export function ProductDetail({ product, related }: Props) {
     requireAuth(() => { /* TODO: Firestore wishlist */ });
   }
 
-  const purchaseCardProps = { product, isFree, isComingSoon, onAddToCart: handleAddToCart, onGetFree: handleGetFree, onBuyNow: handleBuyNow, onWishlist: handleWishlist };
+  const purchaseCardProps = { product, isFree, isComingSoon, owned, onAddToCart: handleAddToCart, onGetFree: handleGetFree, onBuyNow: handleBuyNow, onWishlist: handleWishlist };
 
   return (
     <main className="min-h-screen">
@@ -447,8 +460,8 @@ function FreeClaimModal({ product, signedIn, onClose }: {
 // ─────────────────────────────────────────────────────────────────────────────
 // PURCHASE CARD
 // ─────────────────────────────────────────────────────────────────────────────
-function PurchaseCard({ product, isFree, isComingSoon, onAddToCart, onGetFree, onBuyNow, onWishlist }: {
-  product: Product; isFree: boolean; isComingSoon: boolean;
+function PurchaseCard({ product, isFree, isComingSoon, owned, onAddToCart, onGetFree, onBuyNow, onWishlist }: {
+  product: Product; isFree: boolean; isComingSoon: boolean; owned: boolean;
   onAddToCart: () => void; onGetFree: () => void; onBuyNow: () => void; onWishlist: () => void;
 }) {
   const isExternal =
@@ -494,7 +507,30 @@ function PurchaseCard({ product, isFree, isComingSoon, onAddToCart, onGetFree, o
         )}
 
         <div className="mt-4 flex flex-col gap-2.5">
-          {isComingSoon ? (
+          {owned ? (
+            /* Already purchased — no selling, just access */
+            <>
+              <div className="flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 px-4 py-3 font-heading font-bold text-emerald-600">
+                <CheckCircle2 className="size-5" /> You own this product
+              </div>
+              <Link
+                href="/dashboard/downloads"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-3 font-heading font-bold text-white transition-opacity hover:opacity-90"
+              >
+                <Download className="size-4" /> Open My Library
+              </Link>
+              {!!product.externalUrl && (
+                <a
+                  href={product.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary px-4 py-2.5 font-heading font-bold text-primary transition-colors hover:bg-primary hover:text-white"
+                >
+                  <ExternalLink className="size-4" /> Open App
+                </a>
+              )}
+            </>
+          ) : isComingSoon ? (
             <Button size="lg" className="w-full gap-2 font-semibold">
               <Bell className="size-4" /> Notify Me
             </Button>
@@ -546,16 +582,18 @@ function PurchaseCard({ product, isFree, isComingSoon, onAddToCart, onGetFree, o
               </button>
             </>
           )}
-          <button
-            onClick={onWishlist}
-            className="flex w-full items-center justify-center gap-2 rounded-xl py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <Heart className="size-4" /> Save to Wishlist
-          </button>
+          {!owned && (
+            <button
+              onClick={onWishlist}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Heart className="size-4" /> Save to Wishlist
+            </button>
+          )}
         </div>
 
         {/* Trust guarantees */}
-        {!isComingSoon && (
+        {!isComingSoon && !owned && (
           <ul className="mt-4 space-y-2 border-t pt-4">
             {[
               { icon: CheckCircle2, text: "Instant access after payment" },
