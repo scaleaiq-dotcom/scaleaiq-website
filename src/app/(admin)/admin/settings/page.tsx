@@ -3,11 +3,11 @@
 import * as React from "react";
 import {
   Settings, Store, CreditCard, Mail, Zap, Shield,
-  Save, Loader2, Eye, EyeOff, ChevronRight,
+  Save, Loader2, Eye, EyeOff, ChevronRight, Database, Star, CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Tab = "general" | "payments" | "email" | "integrations" | "security";
+type Tab = "general" | "payments" | "email" | "integrations" | "security" | "storedata";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] = [
   { id: "general",      label: "General",      icon: Store,      desc: "Store name, tagline, contact info" },
@@ -15,6 +15,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] 
   { id: "email",        label: "Email",        icon: Mail,       desc: "SMTP & notification templates" },
   { id: "integrations", label: "Integrations", icon: Zap,        desc: "WhatsApp, Telegram, analytics" },
   { id: "security",     label: "Security",     icon: Shield,     desc: "Admin emails, session settings" },
+  { id: "storedata",    label: "Store Data",   icon: Database,   desc: "Seed reviews and social proof" },
 ];
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -303,6 +304,71 @@ function SecurityTab() {
   );
 }
 
+/* ── Store Data Tab ─────────────────────────────────────── */
+function StoreDataTab() {
+  const [seeding, setSeeding] = React.useState(false);
+  const [result, setResult] = React.useState<{ seeded?: number; skipped?: number; error?: string } | null>(null);
+
+  async function seedReviews() {
+    setSeeding(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/seed-reviews", { method: "POST" });
+      const d = await res.json();
+      setResult(d);
+    } catch {
+      setResult({ error: "Request failed. Try again." });
+    } finally {
+      setSeeding(false);
+    }
+  }
+
+  return (
+    <div className="max-w-xl space-y-6">
+      <div className="rounded-xl border bg-muted/30 p-5">
+        <div className="flex items-start gap-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/30">
+            <Star className="size-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Seed Starter Reviews</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Adds 4 realistic reviews per product — mixed ratings (3–5 stars), Indian names, and natural comments.
+              Products that already have reviews are skipped automatically.
+            </p>
+            <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+              <li>• Mix of 3★, 4★, and 5★ ratings</li>
+              <li>• Different reviewer names and comments per product</li>
+              <li>• Also adds 5–20 sample download counts</li>
+              <li>• Safe to run — skips products that already have reviews</li>
+            </ul>
+          </div>
+        </div>
+        <button
+          onClick={seedReviews}
+          disabled={seeding}
+          className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+        >
+          {seeding ? <Loader2 className="size-4 animate-spin" /> : <Star className="size-4" />}
+          {seeding ? "Seeding reviews…" : "Seed Reviews Now"}
+        </button>
+        {result && (
+          <div className={cn("mt-3 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium",
+            result.error ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400")}>
+            {result.error ? result.error : (
+              <>
+                <CheckCircle2 className="size-4 shrink-0" />
+                {result.seeded} product{result.seeded !== 1 ? "s" : ""} seeded
+                {result.skipped ? `, ${result.skipped} skipped (already had reviews)` : ""}.
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Page ───────────────────────────────────────────────── */
 export default function SettingsPage() {
   const [tab, setTab] = React.useState<Tab>("general");
@@ -352,6 +418,7 @@ export default function SettingsPage() {
           {tab === "email"        && <EmailTab />}
           {tab === "integrations" && <IntegrationsTab />}
           {tab === "security"     && <SecurityTab />}
+          {tab === "storedata"    && <StoreDataTab />}
         </div>
       </div>
     </div>
