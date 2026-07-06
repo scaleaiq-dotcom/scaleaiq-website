@@ -3,64 +3,16 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, ShoppingBag, Trash2, ArrowRight, Tag, Loader2, Check } from "lucide-react";
+import { X, ShoppingBag, Trash2, ArrowRight } from "lucide-react";
 import { useCart } from "@/store/cart";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function CartDrawer() {
-  const { items, isOpen, closeCart, removeItem, total, count, coupon: applied, setCoupon: setApplied } = useCart();
+  const { items, isOpen, closeCart, removeItem, total, count } = useCart();
   const cartTotal = total();
   const cartCount = count();
   const hasFreeOnly = items.every(i => i.pricingType === "free");
-
-  // Coupon lives in the shared cart store — apply it here OR at checkout,
-  // it's the same coupon everywhere.
-  const [coupon, setCoupon] = React.useState("");
-  const [couponError, setCouponError] = React.useState("");
-  const [checking, setChecking] = React.useState(false);
-
-  async function applyCoupon(codeArg?: string) {
-    const code = (codeArg ?? coupon).trim();
-    setCouponError("");
-    if (!code) return;
-    setChecking(true);
-    try {
-      const res = await fetch("/api/coupons/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, subtotal: cartTotal }),
-      });
-      const d = await res.json();
-      if (d.valid) {
-        setApplied({ code: d.code, discount: d.discount });
-        setCoupon(d.code);
-      } else {
-        setApplied(null);
-        setCouponError(d.error ?? "Invalid or expired coupon code.");
-      }
-    } catch {
-      setCouponError("Could not check that coupon. Please try again.");
-    } finally {
-      setChecking(false);
-    }
-  }
-
-  function removeCoupon() {
-    setApplied(null);
-    setCoupon("");
-    setCouponError("");
-  }
-
-  // Re-validate when the cart total changes (percent discounts depend on it)
-  React.useEffect(() => {
-    if (applied && cartTotal > 0) applyCoupon(applied.code);
-    if (cartTotal === 0 && applied) removeCoupon();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartTotal]);
-
-  const discount = applied?.discount ?? 0;
-  const payable = Math.max(0, cartTotal - discount);
 
   // Close on Escape
   React.useEffect(() => {
@@ -166,52 +118,17 @@ export function CartDrawer() {
         {/* Footer */}
         {items.length > 0 && (
           <div className="border-t px-5 py-4 space-y-3">
-            {/* Coupon (paid carts only) */}
-            {!hasFreeOnly && (
-              applied ? (
-                <div className="flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-500/10 px-3 py-2">
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
-                    <Check className="size-4" /> {applied.code} — ₹{applied.discount} off
-                  </span>
-                  <button onClick={removeCoupon} aria-label="Remove coupon" className="text-muted-foreground hover:text-destructive">
-                    <X className="size-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Tag className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={coupon}
-                      onChange={e => { setCoupon(e.target.value); setCouponError(""); }}
-                      onKeyDown={e => e.key === "Enter" && applyCoupon()}
-                      placeholder="Coupon code"
-                      className="h-9 w-full rounded-lg border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
-                  </div>
-                  <Button variant="outline" size="sm" className="shrink-0" onClick={() => applyCoupon()} disabled={checking || !coupon.trim()}>
-                    {checking ? <Loader2 className="size-4 animate-spin" /> : "Apply"}
-                  </Button>
-                </div>
-              )
-            )}
-            {couponError && <p className="text-xs text-destructive">{couponError}</p>}
-
             {/* Total */}
             <div className="rounded-xl bg-muted/40 px-4 py-3">
-              {discount > 0 && (
-                <div className="mb-1 flex items-center justify-between text-sm text-emerald-600">
-                  <span>Coupon discount</span>
-                  <span className="font-semibold">− ₹{discount}</span>
-                </div>
-              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Total</span>
                 <span className="font-heading text-xl font-extrabold">
-                  {hasFreeOnly ? "FREE" : `₹${payable}`}
+                  {hasFreeOnly ? "FREE" : `₹${cartTotal}`}
                 </span>
               </div>
+              {!hasFreeOnly && (
+                <p className="mt-1 text-xs text-muted-foreground">Have a coupon? Apply it at checkout.</p>
+              )}
             </div>
 
             {/* Checkout */}

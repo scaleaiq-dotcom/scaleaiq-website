@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   Download, Star, ShoppingCart, Heart, Share2, Clock,
   CheckCircle2, User, Tag, Layers, FileText, Play,
-  MessageSquare, Copy, Check, Bell, Package, ExternalLink, Send, Loader2,
+  MessageSquare, Copy, Check, Bell, Package, ExternalLink, Send, Loader2, X,
   FileArchive, FileSpreadsheet, FileCode2, Music, Film, ImageIcon, Link2,
   BookOpen, Globe, Mail, Video, Lock, ListChecks, Users2, Sparkles,
 } from "lucide-react";
@@ -464,6 +464,45 @@ function PurchaseCard({ product, isFree, isComingSoon, owned, onAddToCart, onGet
   product: Product; isFree: boolean; isComingSoon: boolean; owned: boolean;
   onAddToCart: () => void; onGetFree: () => void; onBuyNow: () => void; onWishlist: () => void;
 }) {
+  const { coupon: applied, setCoupon: setApplied } = useCart();
+  const [couponInput, setCouponInput] = React.useState("");
+  const [couponError, setCouponError] = React.useState("");
+  const [checking, setChecking] = React.useState(false);
+
+  async function applyCoupon() {
+    const code = couponInput.trim();
+    if (!code) return;
+    setCouponError("");
+    setChecking(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, subtotal: product.price }),
+      });
+      const d = await res.json();
+      if (d.valid) {
+        setApplied({ code: d.code, discount: d.discount });
+        setCouponInput(d.code);
+      } else {
+        setApplied(null);
+        setCouponError(d.error ?? "Invalid or expired coupon code.");
+      }
+    } catch {
+      setCouponError("Could not verify coupon. Try again.");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  function removeCoupon() {
+    setApplied(null);
+    setCouponInput("");
+    setCouponError("");
+  }
+
+  const discountedPrice = applied ? Math.max(0, product.price - applied.discount) : product.price;
+
   const isExternal =
     !!product.externalUrl &&
     (product.deliveryType === "external" || product.launchType === "External URL");
@@ -503,6 +542,44 @@ function PurchaseCard({ product, isFree, isComingSoon, owned, onAddToCart, onGet
                 </span>
               </>
             )}
+          </div>
+        )}
+
+        {/* Coupon input — paid products only, not owned/free/coming-soon */}
+        {!isFree && !isComingSoon && !owned && (
+          <div className="mt-4">
+            {applied ? (
+              <div className="flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-500/10 px-3 py-2">
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+                  <CheckCircle2 className="size-4" /> {applied.code} — ₹{applied.discount} off
+                </span>
+                <button onClick={removeCoupon} aria-label="Remove coupon" className="text-muted-foreground hover:text-destructive">
+                  <X className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Tag className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={e => { setCouponInput(e.target.value); setCouponError(""); }}
+                    onKeyDown={e => e.key === "Enter" && applyCoupon()}
+                    placeholder="Have a coupon code?"
+                    className="h-9 w-full rounded-lg border bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <button
+                  onClick={applyCoupon}
+                  disabled={checking || !couponInput.trim()}
+                  className="shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50"
+                >
+                  {checking ? <Loader2 className="size-4 animate-spin" /> : "Apply"}
+                </button>
+              </div>
+            )}
+            {couponError && <p className="mt-1 text-xs text-destructive">{couponError}</p>}
           </div>
         )}
 
@@ -578,7 +655,7 @@ function PurchaseCard({ product, isFree, isComingSoon, owned, onAddToCart, onGet
                 onClick={onBuyNow}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary px-4 py-3 font-heading font-bold text-primary transition-colors hover:bg-primary hover:text-white"
               >
-                Buy Now — {formatPrice(product.price)}
+                {applied ? <>Buy Now — <span className="line-through opacity-60 mr-1">{formatPrice(product.price)}</span>{formatPrice(discountedPrice)}</> : <>Buy Now — {formatPrice(product.price)}</>}
               </button>
             </>
           )}
