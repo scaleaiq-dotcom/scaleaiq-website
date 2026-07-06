@@ -553,9 +553,13 @@ export function ProductEditor({ productId }: { productId?: string }) {
           <Button variant="outline" size="sm" onClick={() => save("draft")} disabled={saving}>
             Save Draft
           </Button>
-          <Button size="sm" onClick={() => save("published")} disabled={saving} className="gap-1.5">
+          {/* Respect the Status dropdown: "coming_soon"/"archived" save as-is
+              instead of being force-flipped to published. */}
+          <Button size="sm"
+            onClick={() => save(form.status === "coming_soon" || form.status === "archived" ? form.status : "published")}
+            disabled={saving} className="gap-1.5">
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-            {saved ? "Saved!" : "Publish"}
+            {saved ? "Saved!" : form.status === "coming_soon" ? "Save as Coming Soon" : form.status === "archived" ? "Save as Archived" : "Publish"}
           </Button>
         </div>
       </div>
