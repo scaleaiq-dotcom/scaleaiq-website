@@ -643,6 +643,39 @@ function PurchaseCard({ product, isFree, isComingSoon, owned, onAddToCart, onGet
               <ExternalLink className="size-4" />
               {`Open App — ${formatPrice(product.price)}`}
             </a>
+          ) : product.freeEnabled ? (
+            /* Freemium — free limited tier + paid full access */
+            <div className="space-y-2.5">
+              {product.freeDescription && (
+                <div className="rounded-xl border bg-muted/40 px-4 py-3 text-xs text-muted-foreground space-y-1.5">
+                  <p className="font-semibold text-foreground">Free tier includes:</p>
+                  {product.freeDescription.split("\n").filter(Boolean).map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={onGetFree}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-500 px-4 py-3 font-heading font-bold text-emerald-600 transition-colors hover:bg-emerald-500 hover:text-white"
+              >
+                <Download className="size-4" />
+                Get Free{product.freeLabel ? ` — ${product.freeLabel}` : " Version"}
+              </button>
+              <div className="relative flex items-center gap-2">
+                <div className="flex-1 border-t" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <div className="flex-1 border-t" />
+              </div>
+              <button
+                onClick={onBuyNow}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-3 font-heading font-bold text-white transition-opacity hover:opacity-90"
+              >
+                <ShoppingCart className="size-4" />
+                {applied
+                  ? <>Get Full Access — <span className="line-through opacity-60 mr-1">{formatPrice(product.price)}</span>{formatPrice(discountedPrice)}</>
+                  : <>Get Full Access — {formatPrice(product.price)}</>}
+              </button>
+            </div>
           ) : (
             <>
               <button

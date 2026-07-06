@@ -6,7 +6,7 @@ import {
   Save, Eye, Loader2, Plus, Trash2, GripVertical, Upload,
   ChevronRight, Globe, BookOpen, MessageCircle, Mail,
   Video, FileText, Download, Play, ArrowLeftRight, ExternalLink,
-  BarChart3, TrendingUp, Users, Star, CheckCircle2, X, Images,
+  BarChart3, TrendingUp, Users, Star, CheckCircle2, X, Images, Gift,
 } from "lucide-react";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase/client";
@@ -90,6 +90,7 @@ interface FS {
   extDemoEnabled: boolean; extDemoUrl: string;
   epubEnabled: boolean; epubUrl: string; previewEpubUrl: string;
   galleryEnabled: boolean; galleryImages: string[];
+  freeEnabled: boolean; freeLabel: string; freeDescription: string; freeFiles: ExpRow[];
   features: string; benefits: string; requirements: string; audience: string; included: string;
   tutorials: Tutorial[]; downloads: DLItem[];
   docUrl: string; githubUrl: string; websiteUrl: string; communityUrl: string; supportEmail: string;
@@ -112,6 +113,7 @@ const DEF: FS = {
   extDemoEnabled: false, extDemoUrl: "",
   epubEnabled: false, epubUrl: "", previewEpubUrl: "",
   galleryEnabled: false, galleryImages: [],
+  freeEnabled: false, freeLabel: "", freeDescription: "", freeFiles: [],
   features: "", benefits: "", requirements: "", audience: "", included: "",
   tutorials: [], downloads: [],
   docUrl: "", githubUrl: "", websiteUrl: "", communityUrl: "", supportEmail: "",
@@ -227,6 +229,10 @@ export function ProductEditor({ productId }: { productId?: string }) {
           previewEpubUrl: product.previewEpubUrl ?? "",
           galleryEnabled: product.galleryEnabled ?? false,
           galleryImages: Array.isArray(product.galleryImages) ? product.galleryImages : [],
+          freeEnabled: product.freeEnabled ?? false,
+          freeLabel: product.freeLabel ?? "",
+          freeDescription: product.freeDescription ?? "",
+          freeFiles: Array.isArray(product.freeFiles) ? product.freeFiles : [],
           features: product.features ?? "",
           benefits: product.benefits ?? "",
           requirements: product.requirements ?? "",
@@ -924,6 +930,82 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 {item.extra}
               </div>
             ))}
+
+            {/* ── Freemium Tier ── */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 dark:border-amber-800 dark:bg-amber-900/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gift className="size-4 text-amber-500" />
+                  <span className="text-sm font-medium">Free Tier (Freemium)</span>
+                </div>
+                <Toggle on={form.freeEnabled} set={v => upd("freeEnabled", v)} />
+              </div>
+              {form.freeEnabled && (
+                <div className="mt-4 space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Show two options on the product page — a free limited version and the full paid version.
+                    Customers can claim the free tier without paying, and upgrade later.
+                  </p>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Free tier label <span className="text-muted-foreground/50">(shown on button)</span></label>
+                    <input
+                      value={form.freeLabel}
+                      onChange={e => upd("freeLabel", e.target.value)}
+                      placeholder="e.g. 3 sample images, Basic PDF, Preview only"
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">What's included in free tier</label>
+                    <textarea
+                      value={form.freeDescription}
+                      onChange={e => upd("freeDescription", e.target.value)}
+                      rows={3}
+                      placeholder="e.g.&#10;- 3 sample images (low-res)&#10;- 1-page PDF preview&#10;- No commercial use"
+                      className="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="text-xs font-medium text-muted-foreground">Free tier files (delivered on free claim)</label>
+                      <button
+                        type="button"
+                        onClick={() => upd("freeFiles", [...form.freeFiles, { id: crypto.randomUUID(), title: "", url: "" }])}
+                        className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors hover:bg-accent"
+                      >
+                        <Plus className="size-3" /> Add file
+                      </button>
+                    </div>
+                    {form.freeFiles.length === 0 && (
+                      <p className="text-xs text-muted-foreground/60">No files added — the free tier will be a preview only (no download).</p>
+                    )}
+                    {form.freeFiles.map((row, idx) => (
+                      <div key={row.id} className="mb-2 flex gap-2">
+                        <input
+                          value={row.title}
+                          onChange={e => upd("freeFiles", form.freeFiles.map((r, i) => i === idx ? { ...r, title: e.target.value } : r))}
+                          placeholder="Label (e.g. Sample PDF)"
+                          className="h-8 w-32 shrink-0 rounded-lg border bg-background px-2 text-xs outline-none"
+                        />
+                        <input
+                          value={row.url}
+                          onChange={e => upd("freeFiles", form.freeFiles.map((r, i) => i === idx ? { ...r, url: e.target.value } : r))}
+                          placeholder="File URL"
+                          className="h-8 flex-1 rounded-lg border bg-background px-2 text-xs outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => upd("freeFiles", form.freeFiles.filter((_, i) => i !== idx))}
+                          className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

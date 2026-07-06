@@ -104,6 +104,10 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     hasEpub: !!data.epubUrl,
     galleryEnabled: data.galleryEnabled ?? false,
     galleryImages: Array.isArray(data.galleryImages) ? data.galleryImages : [],
+    freeEnabled: data.freeEnabled ?? false,
+    freeLabel: data.freeLabel ?? "",
+    freeDescription: data.freeDescription ?? "",
+    freeFiles: Array.isArray(data.freeFiles) ? data.freeFiles : [],
     // Bundle contents — file URLs stripped: delivery happens post-purchase only
     downloads: Array.isArray(data.downloads)
       ? data.downloads.map((d: Record<string, unknown>) => ({

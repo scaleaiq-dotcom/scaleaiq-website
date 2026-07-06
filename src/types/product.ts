@@ -154,6 +154,12 @@ export interface Product {
   galleryEnabled?: boolean;
   galleryImages?: string[];
 
+  // Freemium: free limited version + paid full access on the same product
+  freeEnabled?: boolean;
+  freeLabel?: string;       // e.g. "3 sample images"
+  freeDescription?: string; // what the free version includes
+  freeFiles?: ExpFile[];    // files delivered on free claim
+
   // Bundle contents & learning material (from editor tabs — sanitized for public display)
   downloads?: ProductFile[];
   tutorials?: ProductTutorial[];
