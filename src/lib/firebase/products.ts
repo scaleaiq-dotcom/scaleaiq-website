@@ -314,7 +314,9 @@ export async function getHomeProducts(perSection = 8) {
     .limit(300)
     .get();
   const all = snap.docs.map((d) => docToProduct(d.id, d.data()));
-  const published = all.filter((p) => p.status === "published");
+  // Sections include coming_soon products too — their cards link to the
+  // Notify Me page, so tagging a pre-launch product as featured/trending works.
+  const visible = all;
 
   const bySales = (a: Product, b: Product) => (b.salesCount ?? 0) - (a.salesCount ?? 0);
   const time = (x: Product) =>
@@ -329,10 +331,10 @@ export async function getHomeProducts(perSection = 8) {
 
   return {
     categoryCounts,
-    featured: published.filter((p) => p.featured).slice(0, perSection),
-    trending: published.filter((p) => p.trending).sort(bySales).slice(0, perSection),
-    freeThisWeek: published.filter((p) => p.freeThisWeek).slice(0, perSection),
-    topSellers: published.filter((p) => p.bestSeller).sort(bySales).slice(0, perSection),
+    featured: visible.filter((p) => p.featured).slice(0, perSection),
+    trending: visible.filter((p) => p.trending).sort(bySales).slice(0, perSection),
+    freeThisWeek: visible.filter((p) => p.freeThisWeek).slice(0, perSection),
+    topSellers: visible.filter((p) => p.bestSeller).sort(bySales).slice(0, perSection),
     recent: [...all].sort((a, b) => time(b) - time(a)).slice(0, perSection),
     prompts: all.filter((p) => p.category === "prompts").slice(0, perSection),
   };

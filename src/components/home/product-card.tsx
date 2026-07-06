@@ -48,9 +48,9 @@ export function ProductCard({
 
         {/* Badges */}
         {isComingSoon ? (
-          <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/60 backdrop-blur-sm">
-            <Clock className="size-6 text-white/80" />
-            <span className="text-xs font-bold uppercase tracking-widest text-white">
+          <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 backdrop-blur-sm">
+            <Clock className="size-3 text-amber-400" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white">
               Coming Soon
             </span>
           </span>
