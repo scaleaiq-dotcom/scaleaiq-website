@@ -609,9 +609,7 @@ function PurchaseCard({ product, isFree, isComingSoon, owned, onAddToCart, onGet
               )}
             </>
           ) : isComingSoon ? (
-            <Button size="lg" className="w-full gap-2 font-semibold">
-              <Bell className="size-4" /> Notify Me
-            </Button>
+            <NotifyMeBox product={product} />
           ) : isFree ? (
             /* FREE — every launch type goes through the claim flow so the
                buyer gets downloads, the order is recorded, and it lands in
@@ -1452,6 +1450,93 @@ function ReviewsTab({ product }: { product: Product }) {
 
       {/* Review form */}
       <GuestReviewForm product={product} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFY ME BOX — shown on coming soon products instead of buy buttons
+// ─────────────────────────────────────────────────────────────────────────────
+function NotifyMeBox({ product }: { product: Product }) {
+  const [email, setEmail] = React.useState("");
+  const [sent, setSent] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/notify-me", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), productId: product.id, productTitle: product.title }),
+      });
+      if (res.ok) setSent(true);
+      else setError("Something went wrong. Try WhatsApp instead.");
+    } catch {
+      setError("Network error. Try WhatsApp instead.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const waText = encodeURIComponent(`Hi! I want to be notified when "${product.title}" launches on ScaleAIQ. Please add me to the list.`);
+  const waUrl = `https://wa.me/917990368493?text=${waText}`;
+
+  if (sent) {
+    return (
+      <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-5 text-center dark:bg-emerald-900/20">
+        <CheckCircle2 className="mx-auto size-8 text-emerald-500" />
+        <p className="mt-2 font-semibold text-emerald-700 dark:text-emerald-400">You&apos;re on the list!</p>
+        <p className="mt-1 text-xs text-muted-foreground">We&apos;ll email you the moment this launches.</p>
+        <a href={waUrl} target="_blank" rel="noopener noreferrer"
+          className="mt-3 flex items-center justify-center gap-2 rounded-xl border-2 border-[#25D366] px-4 py-2.5 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366] hover:text-white">
+          <MessageSquare className="size-4" /> Also notify me on WhatsApp
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border bg-muted/30 px-4 py-5">
+      <div className="flex items-center gap-2">
+        <Bell className="size-4 text-primary" />
+        <p className="text-sm font-semibold">This product is coming soon</p>
+      </div>
+      <p className="text-xs text-muted-foreground">Get notified the moment it launches — by email or WhatsApp.</p>
+
+      {/* Email notify */}
+      <form onSubmit={submit} className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setError(""); }}
+          placeholder="Your email address"
+          required
+          className="h-9 flex-1 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+        />
+        <button type="submit" disabled={busy || !email.trim()}
+          className="shrink-0 rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50">
+          {busy ? <Loader2 className="size-4 animate-spin" /> : "Notify Me"}
+        </button>
+      </form>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+
+      {/* Divider */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 border-t" />
+        <span className="text-xs text-muted-foreground">or</span>
+        <div className="flex-1 border-t" />
+      </div>
+
+      {/* WhatsApp */}
+      <a href={waUrl} target="_blank" rel="noopener noreferrer"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#25D366] px-4 py-3 font-heading font-bold text-[#25D366] transition-colors hover:bg-[#25D366] hover:text-white">
+        <MessageSquare className="size-4" /> Notify Me on WhatsApp
+      </a>
     </div>
   );
 }
