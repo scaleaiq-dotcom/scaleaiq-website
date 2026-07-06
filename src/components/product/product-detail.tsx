@@ -1308,12 +1308,31 @@ function ShareTab({ product }: { product: Product }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // REVIEWS TAB
 // ─────────────────────────────────────────────────────────────────────────────
+interface ReviewItem { id: string; name: string; avatar: string; rating: number; comment: string; helpful: number; verified: boolean; createdAt: string | null; }
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
 function ReviewsTab({ product }: { product: Product }) {
-  const mockReviews = product.ratingCount > 0 ? [
-    { id: "1", user: "Rahul M.", rating: 5, date: "2 weeks ago", text: "Excellent product! Saved me hours of work. Highly recommended for anyone serious about productivity.", verified: true },
-    { id: "2", user: "Priya S.", rating: 4, date: "1 month ago", text: "Very good quality. Instructions were clear and easy to follow. Will definitely buy again.", verified: true },
-    { id: "3", user: "Amit K.", rating: 5, date: "1 month ago", text: "Worth every rupee. The content is premium quality and the creator is very helpful too.", verified: true },
-  ] : [];
+  const [reviews, setReviews] = React.useState<ReviewItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    fetch(`/api/reviews/product?productId=${product.id}`)
+      .then(r => r.json())
+      .then(d => setReviews(d.reviews ?? []))
+      .catch(() => setReviews([]))
+      .finally(() => setLoading(false));
+  }, [product.id]);
 
   const bars = [5, 4, 3, 2, 1].map(n => ({
     star: n,
@@ -1354,24 +1373,28 @@ function ReviewsTab({ product }: { product: Product }) {
       </div>
 
       {/* Review list */}
-      {mockReviews.length > 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : reviews.length > 0 ? (
         <div className="space-y-3">
-          {mockReviews.map(review => (
+          {reviews.map(review => (
             <div key={review.id} className="rounded-xl border p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-cyan-400 text-xs font-bold text-white">
-                    {review.user[0]}
+                    {review.avatar || review.name[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">{review.user}</p>
+                    <p className="text-sm font-semibold">{review.name}</p>
                     <div className="mt-0.5 flex items-center gap-1.5">
                       <div className="flex">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star key={i} className={cn("size-3", i < review.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
                         ))}
                       </div>
-                      <span className="text-xs text-muted-foreground">· {review.date}</span>
+                      <span className="text-xs text-muted-foreground">· {timeAgo(review.createdAt)}</span>
                     </div>
                   </div>
                 </div>
@@ -1381,7 +1404,7 @@ function ReviewsTab({ product }: { product: Product }) {
                   </span>
                 )}
               </div>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{review.text}</p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{review.comment}</p>
             </div>
           ))}
         </div>

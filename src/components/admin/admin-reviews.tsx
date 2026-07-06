@@ -180,13 +180,17 @@ function ProductReviewsTab() {
     await fetch(`/api/admin/reviews/${r.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, productId: r.productId }),
+      body: JSON.stringify({ status, productId: r.productId, source: (r as ProductReview & { source?: string }).source ?? "pending" }),
     }).catch(() => null);
     await load();
   }
 
   async function remove(r: ProductReview) {
-    await fetch(`/api/admin/reviews/${r.id}?productId=${r.productId}`, { method: "DELETE" }).catch(() => null);
+    await fetch(`/api/admin/reviews/${r.id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: r.productId, source: (r as ProductReview & { source?: string }).source ?? "pending" }),
+    }).catch(() => null);
     await load();
   }
 
