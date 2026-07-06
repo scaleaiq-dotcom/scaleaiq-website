@@ -161,7 +161,7 @@ export async function getFeaturedProducts(count = 10): Promise<Product[]> {
     .get();
   return snap.docs
     .map((d) => docToProduct(d.id, d.data()))
-    .filter(p => p.status === "published");
+    .filter(p => p.status === "published" || p.status === "coming_soon");
 }
 
 export async function getTrendingProducts(count = 10): Promise<Product[]> {
@@ -172,7 +172,7 @@ export async function getTrendingProducts(count = 10): Promise<Product[]> {
     .get();
   return snap.docs
     .map((d) => docToProduct(d.id, d.data()))
-    .filter(p => p.status === "published")
+    .filter(p => p.status === "published" || p.status === "coming_soon")
     .sort((a, b) => (b.salesCount ?? 0) - (a.salesCount ?? 0));
 }
 
@@ -184,7 +184,7 @@ export async function getFreeThisWeekProducts(count = 10): Promise<Product[]> {
     .get();
   return snap.docs
     .map((d) => docToProduct(d.id, d.data()))
-    .filter(p => p.status === "published");
+    .filter(p => p.status === "published" || p.status === "coming_soon");
 }
 
 export async function getBestSellerProducts(count = 10): Promise<Product[]> {
@@ -195,7 +195,7 @@ export async function getBestSellerProducts(count = 10): Promise<Product[]> {
     .get();
   return snap.docs
     .map((d) => docToProduct(d.id, d.data()))
-    .filter(p => p.status === "published")
+    .filter(p => p.status === "published" || p.status === "coming_soon")
     .sort((a, b) => (b.salesCount ?? 0) - (a.salesCount ?? 0));
 }
 
