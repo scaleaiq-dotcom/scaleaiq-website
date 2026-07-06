@@ -8,6 +8,9 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { WhatsAppButton } from "@/components/layout/whatsapp-button";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import Script from "next/script";
 
 // Body font
 const fontSans = Inter({
@@ -81,6 +84,16 @@ export default function RootLayout({
             <WhatsAppButton />
           </div>
         </ThemeProvider>
+        {/* Vercel Analytics — page views, unique visitors, top pages */}
+        <Analytics />
+        {/* Vercel Speed Insights — real-user performance (Core Web Vitals) */}
+        <SpeedInsights />
+        {/* Microsoft Clarity — heatmaps, session recordings, click tracking */}
+        {process.env.NEXT_PUBLIC_CLARITY_ID && (
+          <Script id="clarity" strategy="afterInteractive">
+            {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${process.env.NEXT_PUBLIC_CLARITY_ID}");`}
+          </Script>
+        )}
       </body>
     </html>
   );
