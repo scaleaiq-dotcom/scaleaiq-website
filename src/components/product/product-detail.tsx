@@ -136,9 +136,9 @@ export function ProductDetail({ product, related }: Props) {
                   <div className={cn("size-full", product.gradient ?? "bg-gradient-to-br from-violet-600 to-fuchsia-700")} />
                 )}
                 {isComingSoon && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 backdrop-blur-sm">
-                    <Clock className="size-10 text-white/80" />
-                    <span className="text-xl font-bold uppercase tracking-widest text-white">Coming Soon</span>
+                  <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/70 px-3.5 py-1.5 backdrop-blur-sm">
+                    <Clock className="size-3.5 text-amber-400" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-white">Coming Soon</span>
                   </div>
                 )}
               </div>
