@@ -46,8 +46,8 @@ export function ProductDetail({ product, related }: Props) {
   const { user } = useAuth();
   const router = useRouter();
 
-  const isFree = product.price === 0 || product.pricingType === "free";
   const isComingSoon = product.status === "coming_soon" || product.pricingType === "coming_soon";
+  const isFree = !isComingSoon && (product.price === 0 || product.pricingType === "free");
   const allImages = [
     ...(product.thumbnailUrl ? [product.thumbnailUrl] : []),
     ...product.images,
