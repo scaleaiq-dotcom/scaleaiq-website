@@ -227,6 +227,7 @@ export function ProductDetail({ product, related }: Props) {
         <FreeClaimModal
           product={product}
           signedIn={!!user}
+          freeTier={product.freeEnabled && !isFree}
           onClose={() => setClaimOpen(false)}
         />
       )}
@@ -237,8 +238,8 @@ export function ProductDetail({ product, related }: Props) {
 // ─────────────────────────────────────────────────────────────────────────────
 // FREE CLAIM MODAL — the "free purchase" flow
 // ─────────────────────────────────────────────────────────────────────────────
-function FreeClaimModal({ product, signedIn, onClose }: {
-  product: Product; signedIn: boolean; onClose: () => void;
+function FreeClaimModal({ product, signedIn, freeTier, onClose }: {
+  product: Product; signedIn: boolean; freeTier?: boolean; onClose: () => void;
 }) {
   const needsGoogle = product.access === "login_required" || product.access === "purchase_required";
   const [name, setName] = React.useState("");
@@ -260,8 +261,8 @@ function FreeClaimModal({ product, signedIn, onClose }: {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(skipDetails
-          ? { productId: product.id }
-          : { productId: product.id, name, email }),
+          ? { productId: product.id, freeTier: !!freeTier }
+          : { productId: product.id, name, email, freeTier: !!freeTier }),
       });
       const d = await res.json();
       if (!res.ok) {
@@ -329,7 +330,7 @@ function FreeClaimModal({ product, signedIn, onClose }: {
       <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
         {!result ? (
           <>
-            <h2 className="font-heading text-xl font-bold">Get &ldquo;{product.title}&rdquo; Free</h2>
+            <h2 className="font-heading text-xl font-bold">{freeTier ? `Get Free Sample — "${product.title}"` : `Get "${product.title}" Free`}</h2>
             {signedIn ? (
               <>
                 <div className="mt-6 flex items-center justify-center gap-2 py-6 text-muted-foreground">

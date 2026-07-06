@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
     const product = snap.data()!;
 
     const isFree = (product.pricingType ?? "") === "free" || Number(product.price) === 0;
-    if (!isFree) return NextResponse.json({ error: "This product is not free" }, { status: 400 });
+    const isFreemium = !isFree && product.freeEnabled === true && body.freeTier === true;
+    if (!isFree && !isFreemium) return NextResponse.json({ error: "This product is not free" }, { status: 400 });
 
     // Who is claiming?
     const session = await verifySessionCached(req.cookies.get("session")?.value);
@@ -58,12 +59,21 @@ export async function POST(req: NextRequest) {
     const emailKey = email.toLowerCase().replace(/[^a-z0-9@._+-]/g, "_");
 
     // Files the buyer receives (real URLs — only returned by this endpoint)
-    const files = (Array.isArray(product.downloads) ? product.downloads : [])
-      .filter((d: Record<string, unknown>) => d.file)
-      .map((d: Record<string, unknown>) => ({
-        id: d.id, type: d.type ?? "File", title: (d.title as string) || (d.type as string) || "Download",
-        url: d.file,
-      }));
+    // For freemium free-tier claims: deliver only freeFiles, not the full product
+    const files = isFreemium
+      ? (Array.isArray(product.freeFiles) ? product.freeFiles : [])
+          .filter((f: Record<string, unknown>) => f.url)
+          .map((f: Record<string, unknown>) => ({
+            id: String(f.id ?? ""), type: "File",
+            title: (f.title as string) || "Free Sample",
+            url: f.url,
+          }))
+      : (Array.isArray(product.downloads) ? product.downloads : [])
+          .filter((d: Record<string, unknown>) => d.file)
+          .map((d: Record<string, unknown>) => ({
+            id: d.id, type: d.type ?? "File", title: (d.title as string) || (d.type as string) || "Download",
+            url: d.file,
+          }));
     const externalUrl = product.launchUrl ?? "";
 
     // One claim per email per product (only enforceable when we have an email)
@@ -89,10 +99,10 @@ export async function POST(req: NextRequest) {
         userId: session?.uid ?? null,
         userEmail: email || "guest",
         billingName: name || (email ? email.split("@")[0] : "Guest"),
-        items: [{ productId, title: product.title ?? "", price: 0 }],
+        items: [{ productId, title: product.title ?? "", price: 0, freeTier: isFreemium }],
         total: 0,
         status: "completed",
-        paymentMethod: "free",
+        paymentMethod: isFreemium ? "free_tier" : "free",
         createdAt: FieldValue.serverTimestamp(),
       }),
       snap.ref.update({ downloadCount: FieldValue.increment(1) }).catch(() => {}),
