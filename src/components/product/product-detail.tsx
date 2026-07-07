@@ -833,40 +833,35 @@ function OverviewTab({ product }: { product: Product }) {
         <ImageGallery images={product.galleryImages!} isFree={isFree} />
       )}
 
-      {/* Experience feature buttons */}
+      {/* Try Before You Buy — big highlighted cards, deep-linkable via #try */}
       {(product.pvEnabled && product.pvVideos?.length) || (product.pdfEnabled && product.pdfFiles?.length) || (product.sampleEnabled && product.sampleFiles?.length) || (product.demoEnabled && product.demoUrl) || (product.extDemoEnabled && product.extDemoUrl) ? (
-        <div className="space-y-2.5">
-          <p className="text-sm font-semibold">Try Before You Buy</p>
-          <div className="flex flex-wrap gap-2">
+        <div id="try" className="scroll-mt-24 rounded-2xl border-2 border-primary/25 bg-gradient-to-br from-primary/5 via-transparent to-fuchsia-500/5 p-4 sm:p-5">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-5 text-primary" />
+            <p className="font-heading text-lg font-bold">Try Before You Buy</p>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">Free previews — no sign-up, no payment needed.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {product.pvEnabled && (product.pvVideos ?? []).map(v => (
-              <a key={v.id} href={v.url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                <Video className="size-3.5" /> {v.title ? `Preview Video — ${v.title}` : "Watch Preview Video"}
-              </a>
+              <TryCard key={v.id} href={v.url} Icon={Video} color="text-rose-500 bg-rose-500/10"
+                title={v.title ? `Preview Video — ${v.title}` : "Watch Preview Video"} sub="Watch a free video preview" />
             ))}
             {product.pdfEnabled && (product.pdfFiles ?? []).map(f => (
-              <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                <FileText className="size-3.5" /> {f.title ? `PDF Preview — ${f.title}` : "Read PDF Preview"}{product.pdfPages ? ` (pages ${product.pdfPages})` : ""}
-              </a>
+              <TryCard key={f.id} href={f.url} Icon={FileText} color="text-blue-500 bg-blue-500/10"
+                title={f.title ? `PDF Preview — ${f.title}` : "Read PDF Preview"}
+                sub={product.pdfPages ? `Read pages ${product.pdfPages} free` : "Read a free PDF sample"} />
             ))}
             {product.sampleEnabled && (product.sampleFiles ?? []).map(f => (
-              <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                <Download className="size-3.5" /> {f.title ? `Free Sample — ${f.title}` : "Free Sample"}
-              </a>
+              <TryCard key={f.id} href={f.url} Icon={Download} color="text-emerald-500 bg-emerald-500/10"
+                title={f.title ? `Free Sample — ${f.title}` : "Free Sample"} sub="Download a free sample" />
             ))}
             {product.demoEnabled && product.demoUrl && (
-              <a href={product.demoUrl} target={product.demoMode === "tab" ? "_blank" : "_self"} rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                <Play className="size-3.5" /> Interactive Demo
-              </a>
+              <TryCard href={product.demoUrl} Icon={Play} color="text-violet-500 bg-violet-500/10"
+                title="Interactive Demo" sub="Try it yourself right now" sameTab={product.demoMode !== "tab"} />
             )}
             {product.extDemoEnabled && product.extDemoUrl && (
-              <a href={product.extDemoUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary">
-                <ExternalLink className="size-3.5" /> Live Demo
-              </a>
+              <TryCard href={product.extDemoUrl} Icon={ExternalLink} color="text-amber-500 bg-amber-500/10"
+                title="Live Demo" sub="See the live version in action" />
             )}
           </div>
         </div>
@@ -893,6 +888,24 @@ function OverviewTab({ product }: { product: Product }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Try Before You Buy card ──────────────────────────────────────────────────
+function TryCard({ href, Icon, color, title, sub, sameTab }: {
+  href: string; Icon: React.ElementType; color: string; title: string; sub: string; sameTab?: boolean;
+}) {
+  return (
+    <a href={href} target={sameTab ? "_self" : "_blank"} rel="noopener noreferrer"
+      className="group flex items-center gap-3 rounded-xl border-2 bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md">
+      <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", color)}>
+        <Icon className="size-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-bold transition-colors group-hover:text-primary">{title}</span>
+        <span className="block text-xs text-muted-foreground">{sub}</span>
+      </span>
+    </a>
   );
 }
 

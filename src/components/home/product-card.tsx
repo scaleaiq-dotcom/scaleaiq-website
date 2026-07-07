@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingCart, Clock, Bot, BookOpen, LayoutTemplate, MessageSquareText, TrendingUp, Briefcase, Zap, Gift, Palette, type LucideIcon } from "lucide-react";
+import { ShoppingCart, Clock, Bot, BookOpen, LayoutTemplate, MessageSquareText, TrendingUp, Briefcase, Zap, Gift, Palette, Play, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
@@ -19,10 +19,22 @@ export function ProductCard({
   const isFree = product.price === 0 || product.pricingType === "free";
   const isComingSoon =
     product.status === "coming_soon" || product.pricingType === "coming_soon";
+  // Any free preview content → show a "Try Free" chip that deep-links to the
+  // Try Before You Buy section (#try) on the product page.
+  const hasTry = !isComingSoon && !!(
+    (product.pvEnabled && product.pvVideos?.length) ||
+    (product.pdfEnabled && product.pdfFiles?.length) ||
+    (product.sampleEnabled && product.sampleFiles?.length) ||
+    (product.demoEnabled && product.demoUrl) ||
+    (product.extDemoEnabled && product.extDemoUrl) ||
+    (product.epubEnabled && product.previewEpubUrl) ||
+    (product.galleryEnabled && product.galleryImages?.length)
+  );
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg">
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg">
       {/* Cover */}
+      <div className="relative">
       <Link href={href} className="relative block aspect-video overflow-hidden">
         {product.thumbnailUrl ? (
           <Image
@@ -74,6 +86,15 @@ export function ProductCard({
           </>
         )}
       </Link>
+      {/* Try Free chip — deep-links to the Try Before You Buy section */}
+      {hasTry && (
+        <Link href={`${href}#try`}
+          className="absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 backdrop-blur-sm transition-colors hover:bg-primary">
+          <Play className="size-3 fill-emerald-400 text-emerald-400" />
+          <span className="text-[10px] font-bold uppercase tracking-wide text-white">Try Free</span>
+        </Link>
+      )}
+      </div>
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-1 p-2.5 sm:gap-1.5 sm:p-3">
