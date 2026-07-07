@@ -100,3 +100,19 @@ export function orderReceiptHtml(opts: {
     </p>
   `);
 }
+
+/** Confirmation for a "Notify Me" signup on a coming-soon product. */
+export function notifyMeConfirmHtml(opts: { productTitle: string; productUrl: string }): string {
+  return shell(`
+    <h1 style="margin:0 0 6px;font-size:20px;color:#0a0f1f;">You're on the list! 🔔</h1>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">
+      Thanks for your interest in <strong>${opts.productTitle}</strong>. We'll email you the moment it launches on ScaleAIQ.
+    </p>
+    <a href="${opts.productUrl}" style="display:block;background:#7b3dff;border-radius:10px;padding:14px 16px;margin:8px 0;color:#ffffff;font-weight:bold;font-size:14px;text-decoration:none;text-align:center;">
+      View Product Page →
+    </a>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:12px;">
+      Meanwhile, browse our <a href="${APP_URL}/explore?price=free" style="color:#7b3dff;">free resources</a> — new ones drop every week.
+    </p>
+  `);
+}

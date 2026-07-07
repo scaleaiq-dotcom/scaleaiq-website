@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { sendEmail, notifyMeConfirmHtml } from "@/lib/email";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.scaleaiq.in";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +20,21 @@ export async function POST(req: NextRequest) {
       productTitle: productTitle ?? "",
       createdAt: FieldValue.serverTimestamp(),
     }, { merge: true });
+
+    // Confirmation email (fire-and-forget — never blocks the signup)
+    adminDb.collection("products").doc(productId).get()
+      .then(snap => {
+        const slug = snap.exists ? (snap.data()?.slug as string | undefined) : undefined;
+        return sendEmail({
+          to: email.toLowerCase(),
+          subject: `You're on the list: ${productTitle ?? "ScaleAIQ launch"}`,
+          html: notifyMeConfirmHtml({
+            productTitle: productTitle ?? "our upcoming product",
+            productUrl: slug ? `${APP_URL}/product/${slug}` : APP_URL,
+          }),
+        });
+      })
+      .catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (err) {
