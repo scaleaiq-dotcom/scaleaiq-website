@@ -219,16 +219,19 @@ export function ProductDetail({ product, related }: Props) {
               {activeTab === "reviews"     && <ReviewsTab product={product} />}
             </div>
 
-            {/* ─── RELATED PRODUCTS (always visible below tabs) ─── */}
+            {/* ─── PEOPLE ALSO VIEWED ─── */}
             {related.length > 0 && (
-              <section className="space-y-4">
+              <section className="space-y-4 rounded-2xl border bg-muted/30 p-5">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-heading text-xl font-bold">You May Also Like</h2>
+                  <div>
+                    <h2 className="font-heading text-lg font-bold">People Also Viewed</h2>
+                    <p className="text-xs text-muted-foreground">Customers who viewed this also checked out</p>
+                  </div>
                   <Link href={`/category/${product.category}`} className="text-sm font-medium text-primary hover:underline">
                     View all →
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {related.slice(0, 6).map(p => <ProductCard key={p.id} product={p} />)}
                 </div>
               </section>
