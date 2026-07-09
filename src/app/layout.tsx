@@ -42,6 +42,7 @@ export const metadata: Metadata = {
     "mobile-web-app-capable": "yes",
     "msapplication-TileColor": "#7b3dff",
     "theme-color": "#7b3dff",
+    "google-site-verification": "UIeemLVvp8kfOVZsLCHw5FADDHD6Qujdg-KrWQ76Msk",
   },
   title: {
     default: `${siteConfig.name} — ${siteConfig.tagline}`,
