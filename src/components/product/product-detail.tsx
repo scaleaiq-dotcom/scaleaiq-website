@@ -78,7 +78,7 @@ export function ProductDetail({ product, related }: Props) {
     fetch("/api/coupons/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, subtotal: product.price }),
+      body: JSON.stringify({ code, subtotal: product.price, productSlug: product.slug }),
     })
       .then(r => r.json())
       .then(d => {
@@ -543,7 +543,7 @@ function PurchaseCard({ product, isFree, isComingSoon, owned, onAddToCart, onGet
       const res = await fetch("/api/coupons/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, subtotal: product.price }),
+        body: JSON.stringify({ code, subtotal: product.price, productSlug: product.slug }),
       });
       const d = await res.json();
       if (d.valid) {

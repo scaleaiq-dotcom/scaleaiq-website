@@ -8,8 +8,8 @@ import { resolveCoupon } from "@/lib/coupons";
  */
 export async function POST(req: NextRequest) {
   try {
-    const { code, subtotal } = await req.json();
-    const result = await resolveCoupon(code, Number(subtotal) || 0);
+    const { code, subtotal, productSlug } = await req.json();
+    const result = await resolveCoupon(code, Number(subtotal) || 0, productSlug);
     return NextResponse.json(result);
   } catch {
     return NextResponse.json(

@@ -19,6 +19,7 @@ export interface CouponResult {
 export async function resolveCoupon(
   code: string | null | undefined,
   subtotal: number,
+  productSlug?: string,
 ): Promise<CouponResult> {
   // Strip ALL whitespace: buyers often type "LAUNCH 50" for "LAUNCH50".
   const normalized = String(code ?? "").replace(/\s+/g, "").toUpperCase();
@@ -31,6 +32,14 @@ export async function resolveCoupon(
   const c = snap.docs[0].data();
 
   if (c.active === false) return { valid: false, error: "This coupon is no longer active." };
+
+  // Product restriction — if the coupon has a productSlugs array, it only
+  // works on those specific products.
+  if (Array.isArray(c.productSlugs) && c.productSlugs.length > 0) {
+    if (!productSlug || !c.productSlugs.includes(productSlug)) {
+      return { valid: false, error: "This coupon is not valid for this product." };
+    }
+  }
 
   if (c.expiresAt) {
     const exp = new Date(c.expiresAt);
