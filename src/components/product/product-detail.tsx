@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Download, Star, ShoppingCart, Heart, Share2, Clock,
   CheckCircle2, User, Tag, Layers, FileText, Play,
@@ -64,9 +64,32 @@ export function ProductDetail({ product, related }: Props) {
   const [activeTab, setActiveTab] = React.useState<TabId>("overview");
   const [selectedImage, setSelectedImage] = React.useState(0);
   const [claimOpen, setClaimOpen] = React.useState(false);
-  const { addItem } = useCart();
+  const [adCouponApplied, setAdCouponApplied] = React.useState(false);
+  const { addItem, coupon: appliedCoupon, setCoupon } = useCart();
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Auto-apply coupon from URL (?coupon=LAUNCH50) — used in ad campaigns so
+  // visitors land with the discount already active, no manual entry needed.
+  React.useEffect(() => {
+    const code = searchParams.get("coupon");
+    if (!code || appliedCoupon) return;
+    fetch("/api/coupons/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, subtotal: product.price }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.valid) {
+          setCoupon({ code: d.code, discount: d.discount });
+          setAdCouponApplied(true);
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isComingSoon = product.status === "coming_soon" || product.pricingType === "coming_soon";
   const isFree = !isComingSoon && (product.price === 0 || product.pricingType === "free");
@@ -143,6 +166,22 @@ export function ProductDetail({ product, related }: Props) {
           <span className="text-border">/</span>
           <span className="line-clamp-1 text-foreground">{product.title}</span>
         </nav>
+
+        {/* Ad coupon banner — shown when ?coupon= auto-applied */}
+        {adCouponApplied && appliedCoupon && (
+          <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3">
+            <span className="text-2xl">🎉</span>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                Your coupon <span className="rounded-md bg-emerald-500/20 px-1.5 py-0.5 font-mono">{appliedCoupon.code}</span> is applied!
+              </p>
+              <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80">
+                You save ₹{appliedCoupon.discount} — price updated below. Just click to get it now.
+              </p>
+            </div>
+            <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
+          </div>
+        )}
 
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
 
