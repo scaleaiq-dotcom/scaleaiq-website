@@ -11,6 +11,7 @@ import { WhatsAppButton } from "@/components/layout/whatsapp-button";
 import { NewsTicker } from "@/components/layout/news-ticker";
 import { SocialProofToast } from "@/components/layout/social-proof-toast";
 import { ExitIntentBar } from "@/components/layout/exit-intent-bar";
+import { InstallPrompt } from "@/components/layout/install-prompt";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
@@ -31,6 +32,17 @@ const fontHeading = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ScaleAIQ",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "msapplication-TileColor": "#7b3dff",
+    "theme-color": "#7b3dff",
+  },
   title: {
     default: `${siteConfig.name} — ${siteConfig.tagline}`,
     template: `%s — ${siteConfig.name}`,
@@ -88,6 +100,7 @@ export default function RootLayout({
             <WhatsAppButton />
             <SocialProofToast />
             <ExitIntentBar />
+            <InstallPrompt />
           </div>
         </ThemeProvider>
         {/* Vercel Analytics — page views, unique visitors, top pages */}
@@ -102,6 +115,14 @@ export default function RootLayout({
             src={`https://www.clarity.ms/tag/${process.env.NEXT_PUBLIC_CLARITY_ID}`}
           />
         )}
+        {/* Service Worker registration for PWA */}
+        <Script id="sw-register" strategy="afterInteractive">{`
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js').catch(function() {});
+            });
+          }
+        `}</Script>
       </body>
     </html>
   );
