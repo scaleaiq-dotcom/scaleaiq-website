@@ -80,14 +80,14 @@ export function SocialProofToast() {
 
   // First show after 8s
   React.useEffect(() => {
-    const t = setTimeout(() => { if (!dismissed) next(); }, 8000);
+    const t = setTimeout(() => { if (!dismissed) next(); }, 15000);
     return () => clearTimeout(t);
   }, [next, dismissed]);
 
   // Then every 35s
   React.useEffect(() => {
     if (dismissed) return;
-    const interval = setInterval(() => { if (!dismissed) next(); }, 35000);
+    const interval = setInterval(() => { if (!dismissed) next(); }, 90000);
     return () => clearInterval(interval);
   }, [next, dismissed]);
 
