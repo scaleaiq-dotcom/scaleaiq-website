@@ -14,6 +14,7 @@ const NAMES = [
 const CITIES = [
   "Surat", "Ahmedabad", "Mumbai", "Delhi", "Pune",
   "Bengaluru", "Jaipur", "Vadodara", "Rajkot", "Hyderabad",
+  "Nashik", "Indore", "Bhopal", "Lucknow", "Chandigarh",
 ];
 
 const PRODUCTS = [
@@ -26,51 +27,69 @@ const PRODUCTS = [
   { title: "AI Career Blueprint", action: "purchased" },
 ];
 
-function pick<T>(arr: T[], seed: number): T {
-  return arr[seed % arr.length];
+// Fisher-Yates shuffle — returns a new shuffled array
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 export function SocialProofToast() {
   const [visible, setVisible] = React.useState(false);
   const [dismissed, setDismissed] = React.useState(false);
   const [item, setItem] = React.useState<{ name: string; city: string; title: string; action: string } | null>(null);
-  const [seed, setSeed] = React.useState(0);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const show = React.useCallback((s: number) => {
-    const p = pick(PRODUCTS, s);
-    setItem({
-      name: pick(NAMES, s + 3),
-      city: pick(CITIES, s + 7),
-      title: p.title,
-      action: p.action,
-    });
+  // Each list is shuffled independently — names/cities/products rotate at
+  // different rates so the same combination never repeats within a session.
+  const namesRef    = React.useRef<string[]>([]);
+  const citiesRef   = React.useRef<string[]>([]);
+  const productsRef = React.useRef<typeof PRODUCTS>([]);
+  const idxRef      = React.useRef({ name: 0, city: 0, product: 0 });
+
+  React.useEffect(() => {
+    namesRef.current    = shuffle(NAMES);
+    citiesRef.current   = shuffle(CITIES);
+    productsRef.current = shuffle(PRODUCTS);
+  }, []);
+
+  const next = React.useCallback(() => {
+    const idx = idxRef.current;
+    const name    = namesRef.current[idx.name    % namesRef.current.length];
+    const city    = citiesRef.current[idx.city   % citiesRef.current.length];
+    const product = productsRef.current[idx.product % productsRef.current.length];
+
+    // Advance each index independently to avoid same-pair repeats
+    idx.name    += 1;
+    idx.city    += 3; // prime-like step — city changes faster than name
+    idx.product += 2;
+
+    // Re-shuffle each list once exhausted so the cycle feels fresh
+    if (idx.name    >= namesRef.current.length)    { namesRef.current    = shuffle(NAMES);    idx.name = 0; }
+    if (idx.city    >= citiesRef.current.length)   { citiesRef.current   = shuffle(CITIES);   idx.city = 0; }
+    if (idx.product >= productsRef.current.length) { productsRef.current = shuffle(PRODUCTS); idx.product = 0; }
+
+    setItem({ name, city, title: product.title, action: product.action });
     setVisible(true);
-    // Auto-hide after 5s
+    if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setVisible(false), 5000);
   }, []);
 
+  // First show after 8s
   React.useEffect(() => {
-    // First show: delay 8s so page load is settled
-    const initial = setTimeout(() => {
-      if (!dismissed) show(0);
-    }, 8000);
+    const t = setTimeout(() => { if (!dismissed) next(); }, 8000);
+    return () => clearTimeout(t);
+  }, [next, dismissed]);
 
-    return () => clearTimeout(initial);
-  }, [show, dismissed]);
-
-  // Cycle every 35s
+  // Then every 35s
   React.useEffect(() => {
     if (dismissed) return;
-    const interval = setInterval(() => {
-      setSeed(s => {
-        const next = s + 1;
-        show(next);
-        return next;
-      });
-    }, 35000);
+    const interval = setInterval(() => { if (!dismissed) next(); }, 35000);
     return () => clearInterval(interval);
-  }, [show, dismissed]);
+  }, [next, dismissed]);
 
   function dismiss() {
     setDismissed(true);
