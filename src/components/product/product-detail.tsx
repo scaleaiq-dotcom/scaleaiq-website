@@ -70,11 +70,20 @@ export function ProductDetail({ product, related }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Clear any persisted coupon when landing on a product page WITHOUT a
+  // ?coupon= param — prevents coupons from leaking across products via
+  // Zustand's localStorage persistence.
+  React.useEffect(() => {
+    const code = searchParams.get("coupon");
+    if (!code && appliedCoupon) setCoupon(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]);
+
   // Auto-apply coupon from URL (?coupon=LAUNCH50) — used in ad campaigns so
   // visitors land with the discount already active, no manual entry needed.
   React.useEffect(() => {
     const code = searchParams.get("coupon");
-    if (!code || appliedCoupon) return;
+    if (!code) return;
     fetch("/api/coupons/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -85,11 +94,13 @@ export function ProductDetail({ product, related }: Props) {
         if (d.valid) {
           setCoupon({ code: d.code, discount: d.discount });
           setAdCouponApplied(true);
+        } else {
+          setCoupon(null);
         }
       })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [product.id]);
 
   const isComingSoon = product.status === "coming_soon" || product.pricingType === "coming_soon";
   const isFree = !isComingSoon && (product.price === 0 || product.pricingType === "free");
