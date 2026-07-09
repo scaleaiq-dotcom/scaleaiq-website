@@ -381,7 +381,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
   }
 
   // ── Multi-file Experience rows (e.g. English + Hindi preview PDFs) ──
-  type ExpListField = "pvVideos" | "pdfFiles" | "sampleFiles";
+  type ExpListField = "pvVideos" | "pdfFiles" | "sampleFiles" | "freeFiles";
 
   function addExpRow(list: ExpListField) {
     setForm(p => ({ ...p, [list]: [...p[list], { id: crypto.randomUUID(), title: "", url: "" }] }));
@@ -994,9 +994,17 @@ export function ProductEditor({ productId }: { productId?: string }) {
                         <input
                           value={row.url}
                           onChange={e => upd("freeFiles", form.freeFiles.map((r, i) => i === idx ? { ...r, url: e.target.value } : r))}
-                          placeholder="File URL"
+                          placeholder="File URL or upload →"
                           className="h-8 flex-1 rounded-lg border bg-background px-2 text-xs outline-none"
                         />
+                        <label className={cn(
+                          "flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors hover:bg-accent",
+                          uploading === `freeFiles:${row.id}` && "pointer-events-none opacity-60"
+                        )}>
+                          {uploading === `freeFiles:${row.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                          <input type="file" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) uploadExpRowFile(f, "freeFiles", row.id); e.target.value = ""; }} />
+                        </label>
                         <button
                           type="button"
                           onClick={() => upd("freeFiles", form.freeFiles.filter((_, i) => i !== idx))}
