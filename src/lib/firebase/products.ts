@@ -72,6 +72,7 @@ function docToProduct(id: string, data: Record<string, any>): Product {
     downloadCount: data.downloadCount ?? 0,
     salesCount: data.salesCount ?? 0,
     featured: data.featured ?? false,
+    featuredOrder: data.featuredOrder != null ? Number(data.featuredOrder) : 999,
     bestSeller: data.bestSeller ?? false,
     trending: data.trending ?? false,
     freeThisWeek: data.freeThisWeek ?? false,
@@ -331,7 +332,7 @@ export async function getHomeProducts(perSection = 8) {
 
   return {
     categoryCounts,
-    featured: visible.filter((p) => p.featured).slice(0, perSection),
+    featured: visible.filter((p) => p.featured).sort((a, b) => (a.featuredOrder ?? 999) - (b.featuredOrder ?? 999)).slice(0, perSection),
     trending: visible.filter((p) => p.trending).sort(bySales).slice(0, perSection),
     freeThisWeek: visible.filter((p) => p.freeThisWeek).slice(0, perSection),
     topSellers: visible.filter((p) => p.bestSeller).sort(bySales).slice(0, perSection),

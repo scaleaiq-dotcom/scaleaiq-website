@@ -27,6 +27,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
   if (!await requireAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   const body = await req.json();
+  if (body.featuredOrder !== undefined && body.featuredOrder !== "") body.featuredOrder = Number(body.featuredOrder);
+  else if (body.featuredOrder === "") delete body.featuredOrder;
   await adminDb.collection("products").doc(id).update({ ...body, updatedAt: FieldValue.serverTimestamp() });
   revalidateProduct(body);
   return NextResponse.json({ ok: true });

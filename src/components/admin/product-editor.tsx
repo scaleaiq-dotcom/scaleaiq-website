@@ -79,7 +79,7 @@ type ExpRow = { id: string; title: string; url: string };
 interface FS {
   title: string; slug: string; category: string; subcategory: string; tags: string;
   shortDesc: string; fullDesc: string; productType: string; status: string;
-  featured: boolean; comingSoon: boolean; isNew: boolean; trending: boolean; bestSeller: boolean; freeThisWeek: boolean;
+  featured: boolean; featuredOrder: string; comingSoon: boolean; isNew: boolean; trending: boolean; bestSeller: boolean; freeThisWeek: boolean;
   pricingType: string; price: string; salePrice: string; currency: string;
   thumbnail: string; heroBanner: string; productIcon: string; ogImage: string;
   pvEnabled: boolean; pvUrl: string; pvVideos: ExpRow[];
@@ -102,7 +102,7 @@ interface FS {
 const DEF: FS = {
   title: "", slug: "", category: "", subcategory: "", tags: "",
   shortDesc: "", fullDesc: "", productType: "Download", status: "draft",
-  featured: false, comingSoon: false, isNew: true, trending: false, bestSeller: false, freeThisWeek: false,
+  featured: false, featuredOrder: "", comingSoon: false, isNew: true, trending: false, bestSeller: false, freeThisWeek: false,
   pricingType: "one_time", price: "", salePrice: "", currency: "INR",
   thumbnail: "", heroBanner: "", productIcon: "", ogImage: "",
   pvEnabled: false, pvUrl: "", pvVideos: [],
@@ -193,6 +193,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
           productType: product.productType ?? "Download",
           status: product.status ?? "draft",
           featured: product.featured ?? false,
+          featuredOrder: product.featuredOrder != null ? String(product.featuredOrder) : "",
           comingSoon: product.comingSoon ?? false,
           isNew: product.isNew ?? false,
           trending: product.trending ?? false,
@@ -633,6 +634,19 @@ export function ProductEditor({ productId }: { productId?: string }) {
               <p className="mb-2 text-sm font-medium">Labels</p>
               <div className="flex flex-wrap gap-2">
                 <Chip on={form.featured} set={v => upd("featured", v)} label="Featured" />
+                {form.featured && (
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-muted-foreground whitespace-nowrap">Display order</label>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="1"
+                      value={form.featuredOrder}
+                      onChange={e => upd("featuredOrder", e.target.value)}
+                      className="h-7 w-16 rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                )}
                 <Chip on={form.isNew} set={v => upd("isNew", v)} label="New" />
                 <Chip on={form.trending} set={v => upd("trending", v)} label="Trending" />
                 <Chip on={form.bestSeller} set={v => upd("bestSeller", v)} label="Best Seller" />

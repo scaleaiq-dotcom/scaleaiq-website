@@ -108,6 +108,7 @@ export interface Product {
 
   // Flags
   featured: boolean;
+  featuredOrder?: number; // lower = shows first in Featured section
   bestSeller: boolean;
   trending: boolean;
   freeThisWeek: boolean;

@@ -21,6 +21,28 @@ import { useAuth, notifyAuthChanged } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { EbookReader } from "@/components/ebook/ebook-reader";
 
+// ─── WhatsApp share helper ────────────────────────────────────────────────────
+function WAShareButton({ product }: { product: Product }) {
+  const [url, setUrl] = React.useState("");
+  React.useEffect(() => {
+    setUrl(`${window.location.origin}/product/${product.slug}`);
+  }, [product.slug]);
+
+  const waHref = `https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out "${product.title}" on ScaleAIQ 👇\n${url}`)}`;
+
+  return (
+    <a
+      href={waHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#25D366] px-4 py-2.5 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366] hover:text-white"
+    >
+      <svg viewBox="0 0 32 32" className="size-4 fill-current" aria-hidden><path d="M16 3C9.373 3 4 8.373 4 15c0 2.385.668 4.61 1.832 6.5L4 29l7.75-1.812A12.94 12.94 0 0 0 16 28c6.627 0 12-5.373 12-12S22.627 3 16 3Zm0 2c5.523 0 10 4.477 10 10s-4.477 10-10 10a9.96 9.96 0 0 1-5.078-1.375l-.36-.218-4.598 1.074 1.11-4.46-.238-.374A9.96 9.96 0 0 1 6 15c0-5.523 4.477-10 10-10Zm-3.094 5.5c-.23 0-.598.086-.914.43-.314.343-1.203 1.176-1.203 2.867 0 1.692 1.23 3.325 1.4 3.555.172.23 2.387 3.793 5.86 5.172 2.903 1.145 3.496.918 4.125.86.629-.058 2.027-.828 2.313-1.629.285-.8.285-1.484.2-1.628-.086-.144-.314-.23-.657-.4-.344-.172-2.027-1-2.342-1.115-.314-.114-.543-.172-.77.172-.23.344-.887 1.115-1.086 1.344-.199.23-.4.258-.742.086-.344-.172-1.453-.535-2.766-1.707-1.023-.91-1.715-2.035-1.914-2.379-.2-.344-.022-.53.15-.7.153-.152.344-.4.515-.6.172-.199.23-.343.344-.571.114-.23.058-.43-.028-.6-.086-.171-.77-1.856-1.055-2.539-.257-.625-.523-.55-.742-.563Z"/></svg>
+      Share on WhatsApp
+    </a>
+  );
+}
+
 // ─── Tabs ────────────────────────────────────────────────────────────────────
 const TABS = [
   { id: "overview",     label: "Overview" },
@@ -732,6 +754,9 @@ function PurchaseCard({ product, isFree, isComingSoon, owned, onAddToCart, onGet
           <p className="text-sm font-semibold">{product.creatorName}</p>
         </div>
       </div>
+
+      {/* WhatsApp share */}
+      <WAShareButton product={product} />
     </div>
   );
 }

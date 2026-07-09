@@ -6,6 +6,7 @@ import { WhyScaleAIQ } from "@/components/home/why-scaleaiq";
 import { Testimonials } from "@/components/home/testimonials";
 import { ReviewForm } from "@/components/home/review-form";
 import { Newsletter } from "@/components/home/newsletter";
+import { FreeWeekBanner } from "@/components/home/free-week-banner";
 import { adminDb } from "@/lib/firebase/admin";
 import { getHomeProducts, getCategories } from "@/lib/firebase/products";
 
@@ -45,6 +46,7 @@ export default async function Home() {
 
       <ProductGrid title="Trending" products={trending} viewAllHref="/explore?sort=trending" />
 
+      {freeThisWeek.length > 0 && <FreeWeekBanner products={freeThisWeek} />}
       <ProductGrid title="Free This Week" products={freeThisWeek} viewAllHref="/explore?price=free" />
 
       <ProductGrid title="Best Sellers" products={topSellers} viewAllHref="/explore?sort=best-sellers" ranked />

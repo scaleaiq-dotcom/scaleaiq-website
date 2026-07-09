@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    if (body.featuredOrder !== undefined && body.featuredOrder !== "") body.featuredOrder = Number(body.featuredOrder);
+    else if (body.featuredOrder === "") delete body.featuredOrder;
     const ref = adminDb.collection("products").doc();
     await ref.set({ ...body, id: ref.id, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
     // Surface the new product on the site immediately
