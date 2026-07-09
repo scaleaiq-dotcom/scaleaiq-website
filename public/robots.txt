@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Block admin and private routes from indexing
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /checkout
+Disallow: /forgot-password
+
+# Sitemap location
+Sitemap: https://www.scaleaiq.in/sitemap.xml
